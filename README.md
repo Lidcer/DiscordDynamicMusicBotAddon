@@ -4,10 +4,10 @@ Discord music player with live video progression tracker
 
 Basic function
 
-player <yt url>
-player skip - skips song
-player replay or player reply --force - replays song 
-player destory - destroys player
+- player <yt url>
+- player skip - skips song
+- player replay or player reply --force - replays song 
+- player destory - destroys player
 
 and multiLange lanuage support
 
