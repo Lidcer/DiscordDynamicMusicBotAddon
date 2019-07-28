@@ -17,9 +17,10 @@ To run the bot you need (./example/index)
 - Discord token
 - Youtube Api Key
 
-npm install 
-npm run build
-npm run run 
+Execute
+- npm install
+- npm run build
+- npm run run 
 
 Go to discord join voice channel and type !player <yt url>.
 
