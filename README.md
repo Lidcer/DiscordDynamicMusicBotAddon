@@ -6,7 +6,7 @@ Basic function
 
 - player <yt url>
 - player skip - skips song
-- player replay or player reply --force - replays song 
+- player replay or player replay --force - replays song 
 - player destory - destroys player
 
 and multiLange lanuage support
