@@ -4,7 +4,7 @@ Discord music player with live video progression tracker
 
 Basic function
 
-- player <yt url>
+- player (yt url)
 - player skip - skips song
 - player replay or player replay --force - replays song 
 - player destory - destroys player
@@ -22,7 +22,7 @@ Execute
 - npm run build
 - npm run run 
 
-Go to discord join voice channel and type !player <yt url>.
+Go to discord join voice channel and type !player (yt url).
 
 
 
