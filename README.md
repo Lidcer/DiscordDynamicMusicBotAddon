@@ -9,7 +9,7 @@ Basic function
 - player replay or player replay --force - replays song 
 - player destory - destroys player
 
-and multiLange lanuage support
+and multi-lanuage support
 
 more comming song
 
