@@ -4,8 +4,10 @@ const {
     SongPlayer
 } = require('../dist/songPlayer');
 
-const botToken = 'YOUR_BOT_TOKEN_HERE'
-const youtubeApiTokenhere = 'YOUTUBE_API_KEY_HERE'
+const config = require('config.json')
+
+const botToken = config.discordToken
+const youtubeApiTokenhere = config.youtubeApi
 const prefix = '!'
 
 const songPlayer = new SongPlayer(youtubeApiTokenhere)
