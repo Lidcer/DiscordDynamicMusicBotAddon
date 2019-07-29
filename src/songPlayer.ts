@@ -2,41 +2,62 @@ import { Message, VoiceChannel, Guild, VoiceConnection, RichEmbed, Collector, Te
 import { Embeds } from "./embeds";
 import ytdl = require('ytdl-core-discord');
 import * as Youtube from 'simple-youtube-api';
+
+
 import { EventEmitter } from "events";
-//import { YOUTUBE_API_KEY, client } from "../../index";
+
+
+
 
 const youtubeLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/YouTube_social_white_squircle_%282017%29.svg/1024px-YouTube_social_white_squircle_%282017%29.svg.png'
-
+export const youtubeTester = new RegExp(/http(?:s?):\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w\-\_]*)(&(amp;)?‌​[\w\?‌​=]*)?/g);
 
 
 interface VideoDetails {
     type: string
     id: string;
     url: string,
-    submitter: string,
+    discordUser: DiscordUser,
     time: string,
     title: string,
     length: number,
-    channelId: string,
-    channel: string,
-    channelThumbnail: string,
+    channel: Channel,
     thumbnail: string,
     publishedAt: Date,
+    statistics: VideoStatistic
 }
 
+interface DiscordUser {
+    name: string;
+    date: Date;
+    id: string
+}
+
+interface Channel {
+    id: string
+    thumbnail: string;
+    name: string;
+}
+
+interface VideoStatistic {
+    viewCount: string,
+    likeCount: string,
+    dislikeCount: string,
+    favoriteCount: string,
+    commentCount: string
+}
 
 export class SongPlayer extends EventEmitter {
 
     private messageUpdateRate = 1000 * 10; // 10 seconds....
     private data = {}
-    private youtubeTester = new RegExp(/http(?:s?):\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w\-\_]*)(&(amp;)?‌​[\w\?‌​=]*)?/g);
+
     private urlTester = new RegExp(/https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}/g)
     private youtube: Youtube
 
 
     constructor(youtubeApiKey: string) {
         super();
-        if (typeof youtubeApiKey !== 'string') throw new Error('Youtube Api must be a string!')
         this.youtube = new Youtube(youtubeApiKey)
 
 
@@ -44,7 +65,7 @@ export class SongPlayer extends EventEmitter {
     }
 
     onMessage(message: Message, msg: string, language?: any) {
-        console.log(this.data)
+
         if (!msg.toLowerCase().startsWith('player')) return;
         msg = msg.slice(6).replace(/  /g, ' ').trim();
 
@@ -104,7 +125,7 @@ export class SongPlayer extends EventEmitter {
                     break;
                 default:
                     let urls = null;
-                    if (urls = msg.match(this.youtubeTester)) this.addYoutubeToQueue(message, urls, language)
+                    if (urls = msg.match(youtubeTester)) this.addYoutubeToQueue(message, urls, language)
                     else if (msg.match(this.urlTester)) {
                         const reply = language.youtubeOnly || 'Sorry but only Youtube links are supported'
                         return message.channel.send(Embeds.infoEmbed(reply))
@@ -143,8 +164,9 @@ export class SongPlayer extends EventEmitter {
             }
 
         for (const url of urls) {
-            await this.youtube.getVideo(url)
+            await this.youtube.getVideo(url, { "part": ["statistics", "id", "snippet", "contentDetails"] })
                 .then(async video => {
+
                     const channel = await this.youtube.getChannelByID(video.channel.id).catch(() => { })
 
 
@@ -172,23 +194,42 @@ export class SongPlayer extends EventEmitter {
                     else if (thumbnails.default) videoThumbnail = video.thumbnails.default.url
                     else if (thumbnails.standard) videoThumbnail = video.thumbnails.standard.url
 
+                    const discordUser: DiscordUser = {
+                        date: new Date(Date.now()),
+                        name: message.author.tag,
+                        id: message.author.id,
+                    }
+
+
+                    let hannelThumbnail = null;
+                    if (channel.thumbnails.medium) hannelThumbnail = channel.thumbnails.medium.url
+                    else if (channel.thumbnails.default) hannelThumbnail = channel.thumbnails.default.url
+                    else if (channel.thumbnails.standard) hannelThumbnail = channel.thumbnails.standard.url
+
+
+                    const youtubeChannel: Channel = {
+                        id: channel.id,
+                        name: channel.title,
+                        thumbnail: hannelThumbnail
+
+                    }
+
+
                     const videoDetails: VideoDetails = {
                         type: 'youtube',
                         id: video.id,
                         url: url,
-                        submitter: message.author.id,
+                        discordUser: discordUser,
                         time: `${hours}${minutes}:${seconds}`.trim(),
                         title: video.title,
                         length: length,
-                        channelId: video.channel.id,
-                        channel: video.channel.title,
-                        channelThumbnail: null,
+                        channel: youtubeChannel,
                         thumbnail: videoThumbnail,
-                        publishedAt: video.publishedAt
+                        publishedAt: video.publishedAt,
+                        statistics: video.raw.statistics
+
                     }
-                    if (channel) {
-                        videoDetails.channelThumbnail = channel.thumbnails.default.url;
-                    }
+
 
                     if (video.duration.hours >= 3) {
                         const reply = language.toLongVideo || 'Video cannot be longer than 3 hours!';
@@ -390,7 +431,7 @@ export class SongPlayer extends EventEmitter {
             this.skipSong(message)
         }
         else {
-            message.channel.send('Your song will be when this song ends!')
+            message.channel.send('Your song will be played when this song ends!')
         }
 
     }
@@ -550,10 +591,11 @@ export class SongPlayer extends EventEmitter {
     }
 
     private addBasicInfo(embed: RichEmbed, videoDetails: VideoDetails) {
-        embed.setAuthor(videoDetails.channel, videoDetails.channelThumbnail, `https://www.youtube.com/channel/${videoDetails.channelId}`);
+        embed.setAuthor(videoDetails.channel.name, videoDetails.channel.thumbnail, `https://www.youtube.com/channel/${videoDetails.channel.id}`);
         embed.setTitle(videoDetails.title);
         embed.setColor('RED');
         embed.setURL(videoDetails.url);
+        embed.setThumbnail(videoDetails.thumbnail);
 
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -566,8 +608,8 @@ export class SongPlayer extends EventEmitter {
         const year = date.getFullYear();
         embed.addField('Published', `${day} ${month} ${year}`, true)
 
-        embed.setThumbnail(videoDetails.thumbnail);
-
+        embed.addField('Views', videoDetails.statistics.viewCount, true);
+        embed.addField('Rateing', `👍${videoDetails.statistics.likeCount}   👎${videoDetails.statistics.dislikeCount}`, true);
     }
 
 
