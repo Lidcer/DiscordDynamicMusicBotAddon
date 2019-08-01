@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "build": "tsc",
-        "run": "node ./example/index",
+        "run": "node ./example/index"
     },
     "author": "Lidcer",
     "license": "ISC",
