@@ -1,5 +1,5 @@
-# DiscordMusicPlayer
-Discord music player with live video progression tracker
+# DiscordYoutubePlayer
+Discord youtube player with live video progression tracker
 
 
 Basic function
