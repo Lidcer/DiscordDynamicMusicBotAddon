@@ -3,15 +3,23 @@ Discord music player with live video progression tracker
 
 
 Basic function
+commands:
+- player <youtube url> - to play url
+- player search [search querry] - to search youtube
+- player destory - to destroy player
+- player replay - to replay track
+- player pause - to pause the track
+- player resume - to resumes paused track
+- player skip - to skips track
+- player suffle - suffles playlist
+other features:
+- live track progression status
+- multi-lanuage support(WIP)
+- auto disconnect if no one is listening
+- playlist
+  
 
-- player (yt url)
-- player skip - skips song
-- player replay or player replay --force - replays song 
-- player destory - destroys player
 
-and multi-lanuage support
-
-more comming song
 
 To run the bot you need (./example/index)
 - Discord token
