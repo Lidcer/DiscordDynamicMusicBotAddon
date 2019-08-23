@@ -97,7 +97,7 @@ interface GuildData {
 export class YoutubePlayer {
 
     constructor(youtubeApiKey: string, language?: PlayerLanguage) {
-        if (language && typeof language !== "object") throw new Error('language Need to be object!')
+        if (language && typeof language !== "object") throw new Error('language must be an object!')
         if (!language) language = {} as any;
         if (!youtubeApiKey) throw new Error("Youtube api key cannot be empty");
         if (typeof youtubeApiKey !== "string") throw new Error(`Expected string got ${typeof youtubeApiKey}`);
@@ -109,14 +109,14 @@ export class YoutubePlayer {
         deleteUserMessage.set(this, true);
 
         const thisPlayerLanguage: PlayerLanguage = {
-            notInVoiceChannel: language.notInVoiceChannel || 'You have to be in voice channel to use player commands!',
+            notInVoiceChannel: language.notInVoiceChannel || 'You have to be in voice channel in order to use player commands!',
             cannotConnect: language.cannotConnect || 'Im unable to connect to this channel! 😐',
             onlyYoutubeLinks: language.onlyYoutubeLinks || 'Sorry but only Youtube links are supported',
             incorrectUse: language.incorrectUse || 'You are using player command incorrectly. Type `player help` to get more info',
             videoAdded: language.videoAdded || 'Added by',
             luckSearch: language.luckSearch || 'with luck search',
             missingPermission: language.missingPermission || "Missing permission you need to have role DJ to use command or being alone in channel also works.",
-            alreadyOnPlaylist: language.alreadyOnPlaylist || "Request track is already on playlist!",
+            alreadyOnPlaylist: language.alreadyOnPlaylist || "Requested track is already on playlist!",
             video: {
                 comments: "Comments",
                 downvote: "👎",
@@ -129,17 +129,17 @@ export class YoutubePlayer {
                 monthsName: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
             },
             player: {
-                created: "Player created",
-                destroy: "Player destroyed",
+                created: "Player has been created",
+                destroy: "Player has been destroyed",
                 brokenUrl: "Broken Link",
-                paused: "Player paused",
-                resumed: "Player resumed",
-                suffled: "Playlist hshuffled",
+                paused: "Player has been paused by",
+                resumed: "Player has been resumed by",
+                suffled: "Playlist shuffled",
                 replay: "Your song is going to be replayed when this song ends",
                 forceReplay: "Executing force replay",
                 alredyOnReplay: "This song is already on list for replay",
-                skip: "Track skiped",
-                nothingToSuffle: "Playlist dosen't have enough song to shuffle",
+                skip: "Track has been skiped by",
+                nothingToSuffle: "Playlist dose not have enough song to shuffle",
                 statusPaused: "Paused",
                 statusPlaying: "Playing",
                 loopingOn: "🔁 Looping this song is now enabled ✔️",
@@ -151,7 +151,7 @@ export class YoutubePlayer {
                 replay: "<preifx> player replay - to replay track",
                 pause: "<preifx> player pause - to pause the track",
                 resume: "<preifx> player resume - to resumes paused track",
-                search: "<preifx> player search [search querry] - to search youtube",
+                search: "<preifx> player search [search query] - to search youtube",
                 skip: "<preifx> player skip - to skips track",
                 url: "<preifx> player <youtube url> - to player url"
             }
@@ -174,9 +174,9 @@ export class YoutubePlayer {
         if (checker === 'player') return playerHelp(this, message);
         else if (secondCommand.get(this) && checker === 'p') return playerHelp(this, message);
 
-        if (checker.toLowerCase().startsWith('player'))
+        if (checker.toLowerCase().startsWith('player '))
             msg = msg.slice(6).replace(/  /g, ' ').trim();
-        else if (secondCommand.get(this) && checker.toLowerCase().startsWith('p'))
+        else if (secondCommand.get(this) && checker.toLowerCase().startsWith('p '))
             msg = msg.slice(1).replace(/  /g, ' ').trim();
         else
             return;
@@ -226,12 +226,14 @@ export class YoutubePlayer {
                 case 'leave':
                 case 'kill':
                     destroyPlayer(this, message.guild);
+                    message.delete().catch(() => { })
                     break;
 
                 case 'skip':
                 case 'next':
                 case '>>':
                     skipTrack(this, message);
+                    message.delete().catch(() => { })
                     break;
                 case 'help':
                 case '?':
@@ -254,6 +256,7 @@ export class YoutubePlayer {
                 case 'shuffle':
                 case 'mix':
                     shuffleQueue(this, message);
+                    message.delete().catch(() => { })
                     break;
                 default:
 
@@ -579,22 +582,23 @@ function startPlayer(playerObject: YoutubePlayer, message: Message) {
 
 async function destroyPlayer(playerObject: YoutubePlayer, guild: Guild) {
     const language = playerLanguage.get(playerObject);
-    const guildData = data.get(playerObject) as GuildData;
+    const guildData = data.get(playerObject)[guild.id] as GuildData;
 
-    if (!guildData[guild.id]) return
-    if (guildData[guild.id].connection) {
-        if (guildData[guild.id].setTimeout)
-            clearInterval(guildData[guild.id].setTimeout)
-        guildData[guild.id].setTimeout = null;
 
-        const connection = guildData[guild.id].connection as VoiceConnection
-        const channel = guildData[guild.id].textChannel as TextChannel
-        guildData[guild.id].queue = [];
-        await connection.disconnect();
+    if (!guildData) return
+    if (guildData.connection) {
+        if (guildData.setTimeout)
+            clearInterval(guildData.setTimeout)
+        guildData.setTimeout = null;
 
+        const connection = guildData.connection as VoiceConnection
+        const channel = guildData.textChannel as TextChannel
+        guildData.queue = [];
         if (guildData.playerMessage) {
             guildData.playerMessage.delete().catch(e => guild.client.emit("error", e))
+            guildData.playerMessage = null;
         }
+        await connection.disconnect();
         if (channel) {
             if (canEmbed(channel))
                 await channel.send(Embeds.infoEmbed(language.player.destroy))
@@ -607,14 +611,15 @@ async function destroyPlayer(playerObject: YoutubePlayer, guild: Guild) {
 
         }
     }
-
-    delete guildData[guild.id];
+    if (guildData[guild.id])
+        delete guildData[guild.id];
     guild.client.emit("debug", `[Song Player] [Status] Player destroyed in guild ${guild.id}`)
+
 }
 
-function updatePlayer(playerObject: YoutubePlayer, guild: Guild, fullUpdate = false) {
+async function updatePlayer(playerObject: YoutubePlayer, guild: Guild, fullUpdate = false) {
     const language = playerLanguage.get(playerObject) as PlayerLanguage;
-    const guildData = data.get(playerObject)[guild.id] as GuildData
+    const guildData = data.get(playerObject)[guild.id] as GuildData;
 
     const channel = guildData.textChannel;
     let voice = null;
@@ -628,7 +633,7 @@ function updatePlayer(playerObject: YoutubePlayer, guild: Guild, fullUpdate = fa
     if (!voice) return;
 
     if (fullUpdate) {
-        guildData.playerMessage.delete().catch(e => guild.client.emit("error", e))
+        await guildData.playerMessage.delete().catch(e => guild.client.emit("error", e))
         guildData.playerMessage = null;
     }
 
@@ -638,6 +643,7 @@ function updatePlayer(playerObject: YoutubePlayer, guild: Guild, fullUpdate = fa
     if (guildData.paused) {
         add = Date.now() - guildData.paused.getTime();
     }
+
     let date = new Date(Date.now() - startSongTime.getTime() + add);
     let progress = `${getYoutubeTime(date)} / ${getYoutubeTime(new Date(currentSong.video.duration))}`
 
@@ -647,16 +653,16 @@ function updatePlayer(playerObject: YoutubePlayer, guild: Guild, fullUpdate = fa
     addBasicInfo(playerObject, embed, currentSong.video)
     //@ts-ignore
     embed.setColor(guildData.color)
-    embed.addField(language.video.progress, progress)
+    embed.addField(language.video.progress, progress, true)
     if (guildData.paused)//a
         embed.setFooter(language.player.statusPaused, youtubeLogo)
     else {
         if (guildData.looping)
-            embed.setFooter(language.player.statusPlaying + ' 🔄', youtubeLogo)
+            embed.setFooter(language.player.statusPlaying + ' 🔄', currentSong.video.thumbnail)
         else
-            embed.setFooter(language.player.statusPlaying, youtubeLogo)
+            embed.setFooter(language.player.statusPlaying, currentSong.video.thumbnail)
     }
-
+    embed.setThumbnail(null)
     if (!guildData.playerMessage) {
 
         if (canEmbed(channel))
@@ -768,11 +774,11 @@ function skipTrack(playerObject: YoutubePlayer, message: Message) {
     message.client.emit("debug", `[Song Player] [Status] Track has been skiped by use ${message.author.id} guild ${message.guild.id}`);
     guildData.connection.dispatcher.end()
     if (canEmbed(message.channel as TextChannel)) {
-        message.channel.send(Embeds.infoEmbed(lanugage.player.skip))
+        message.channel.send(Embeds.infoEmbed(`${lanugage.player.skip} ${message.author}`))
             .catch(error => message.client.emit("error", error))
     }
     else {
-        message.channel.send(lanugage.player.skip)
+        message.channel.send(`${lanugage.player.skip} ${message.author}`)
             .catch(error => message.client.emit("error", error))
     }
 }
@@ -791,11 +797,11 @@ function pauseTrack(playerObject: YoutubePlayer, message: Message) {
         guildData.connection.dispatcher.pause();
         guildData.paused = new Date(Date.now());
         if (canEmbed(message.channel as TextChannel)) {
-            message.channel.send(Embeds.infoEmbed(lanugage.player.paused))
+            message.channel.send(Embeds.infoEmbed(`${lanugage.player.paused} ${message.author}`))
                 .catch(error => message.client.emit("error", error))
         }
         else {
-            message.channel.send(lanugage.player.paused)
+            message.channel.send(`${lanugage.player.paused} ${message.author}`)
                 .catch(error => message.client.emit("error", error))
         }
     }
@@ -827,11 +833,11 @@ function resumeTrack(playerObject: YoutubePlayer, message: Message) {
         guildData.paused = new Date(Date.now());
         guildData.paused = null;
         if (canEmbed(message.channel as TextChannel)) {
-            message.channel.send(Embeds.infoEmbed(lanugage.player.resumed))
+            message.channel.send(Embeds.infoEmbed(`${lanugage.player.resumed} ${message.author}`))
                 .catch(error => message.client.emit("error", error))
         }
         else {
-            message.channel.send(lanugage.player.resumed)
+            message.channel.send(`${lanugage.player.resumed} ${message.author}`)
                 .catch(error => message.client.emit("error", error))
         }
         guildData.setTimeout = setInterval(() => {
