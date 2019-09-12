@@ -1,4 +1,4 @@
-import { RichEmbed } from "discord.js";
+import { RichEmbed } from 'discord.js';
 
 export class Embeds {
 
@@ -6,14 +6,14 @@ export class Embeds {
         const embed = basicEmbed();
         embed.setColor('GOLD');
         embed.addField(title, msg);
-        return embed
+        return embed;
     }
 
     static errorEmbed(msg: string, title = 'Info') {
         const embed = basicEmbed();
         embed.setColor('RED');
         embed.addField(title, msg);
-        return embed
+        return embed;
     }
 
 }

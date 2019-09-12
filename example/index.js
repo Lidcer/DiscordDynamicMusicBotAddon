@@ -10,7 +10,12 @@ const botToken = config.discordToken
 const youtubeApiToken = config.youtubeApi
 const prefix = '!'
 
-const youtubePlayer = new YoutubePlayer(youtubeApiToken)
+
+const language = {
+    prefix: '!'
+}
+
+const youtubePlayer = new YoutubePlayer(youtubeApiToken, language);
 
 
 client.on('ready', () => {

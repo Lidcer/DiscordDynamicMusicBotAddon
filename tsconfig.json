@@ -3,11 +3,17 @@
         "outDir": "dist/",
         "target": "es2019",
         "module": "commonjs",
+        "moduleResolution": "node",
         "sourceMap": true,
         "declaration": true,
         "noImplicitAny": false,
         "removeComments": true,
-
+        "resolveJsonModule": true,
+        "noImplicitReturns": true,
+        "noEmitOnError": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strict": true
     },
     "include": ["src/*"]
 }
