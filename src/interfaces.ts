@@ -9,7 +9,6 @@ export interface VideoData {
     thumbnail: string;
     publishedAt: Date;
     statistics: VideoStatistic;
-    //  statistics: VideoStatistic
 }
 
 export interface VideoStatistic {
@@ -28,31 +27,32 @@ export interface Channel {
 }
 
 export interface PlayerLanguage {
-    notInVoiceChannel?: string;
-    cannotConnect?: string;
-    onlyYoutubeLinks?: string;
-    incorrectUse?: string;
-    videoAdded?: string;
-    luckSearch?: string;
-    alreadyOnPlaylist?: string;
-    missingPermission?: string;
-    video: VideoLanguge;
+    notInVoiceChannel: string;
+    cannotConnect: string;
+    onlyYoutubeLinks: string;
+    incorrectUse: string;
+    videoAdded: string;
+    luckSearch: string;
+    alreadyOnPlaylist: string;
+    missingPermission: string;
+    video: VideoLanguage;
     player: Player;
     help: Help;
-    prefix?: string;
+    prefix: string;
 }
 
 export interface Player {
+    helpCommand: string;
     created: string;
     destroy: string;
     paused: string;
     resumed: string;
-    suffled: string;
+    shuffled: string;
     brokenUrl: string;
     replay: string;
     forceReplay: string;
-    alredyOnReplay: string;
-    nothingToSuffle: string;
+    alreadyOnReplay: string;
+    nothingToShuffle: string;
     statusPlaying: string;
     statusPaused: string;
     loopingOn: string;
@@ -69,25 +69,24 @@ export interface Help {
     search: string;
     pause: string;
     resume: string;
-
 }
 
-export interface VideoLanguge {
-    views?: string;
-    upvote?: string;
-    downvote?: string;
-    comments?: string;
-    published?: string;
-    rateing?: string;
-    duration?: string;
-    progress?: string;
-    monthsName?: string[];
+export interface VideoLanguage {
+    views: string;
+    upVote: string;
+    downVote: string;
+    comments: string;
+    published: string;
+    ratting: string;
+    duration: string;
+    progress: string;
+    monthsName: string[];
 }
 
 export interface GuildQueue {
     video: VideoData;
     submitter: GuildMember;
-    submited: Date;
+    submitted: Date;
 }
 
 export interface GuildData {

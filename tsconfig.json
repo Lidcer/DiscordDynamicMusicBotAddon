@@ -7,7 +7,7 @@
         "sourceMap": true,
         "declaration": true,
         "noImplicitAny": false,
-        "removeComments": true,
+        "removeComments": false,
         "resolveJsonModule": true,
         "noImplicitReturns": true,
         "noEmitOnError": false,
@@ -15,5 +15,7 @@
         "noUnusedParameters": true,
         "strict": true
     },
-    "include": ["src/*"]
+    "include": [
+        "src/*"
+    ]
 }

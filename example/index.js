@@ -10,16 +10,14 @@ const botToken = config.discordToken
 const youtubeApiToken = config.youtubeApi
 const prefix = '!'
 
-
 const language = {
-    prefix: '!'
+    prefix
 }
 
 const youtubePlayer = new YoutubePlayer(youtubeApiToken, language);
 
-
 client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}!`);
+    console.info(`Logged in as ${client.user.tag}!`);
     client.user.setPresence({
         game: {
             name: `${prefix}player <url>`,

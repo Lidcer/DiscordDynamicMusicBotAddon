@@ -1,15 +1,15 @@
 import * as SimpleYoutubeApi from 'simple-youtube-api';
 import { VideoData } from './interfaces';
 
-export function silderGenerator(pos, maxPos) {
+export function sliderGenerator(pos, maxPos) {
 
-    let slidcer = '';
-    const boublePos = Math.floor(pos * 30 / maxPos);
+    let slider = '';
+    const radioButtonPos = Math.floor(pos * 30 / maxPos);
     for (let i = 0; i <= 30; i++) {
-        if (boublePos === i) slidcer += '🔘';
-        else slidcer += '▬';
+        if (radioButtonPos === i) slider += '🔘';
+        else slider += '▬';
     }
-    return `${slidcer} `;
+    return `${slider} `;
 }
 
 export class Youtube {
@@ -27,12 +27,11 @@ export class Youtube {
                 });
         });
     }
-    static searchOnLuck(youtubeApiKey: string, searchQuerry: string) {
+
+    static searchOnLuck(youtubeApiKey: string, searchQuery: string) {
         return new Promise((resolve, reject) => {
-
             const youtube = new SimpleYoutubeApi(youtubeApiKey);
-
-            youtube.searchVideos(searchQuerry, 1)
+            youtube.searchVideos(searchQuery, 1)
                 .then(video => {
                     if (video.length === 0) return reject(new Error('Nothing found'));
 

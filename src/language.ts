@@ -10,11 +10,12 @@ export class Language {
         luckSearch: 'with luck search',
         missingPermission: 'Missing permission you need to have role DJ to use command or being alone in channel also works.',
         alreadyOnPlaylist: 'Requested track is already on playlist!',
+        prefix: '',
         video: {
             comments: 'Comments',
-            downvote: '👎',
-            upvote: '👍',
-            rateing: 'Raiting',
+            downVote: '👎',
+            upVote: '👍',
+            ratting: 'Ratting',
             views: 'Views',
             published: 'Published',
             duration: 'Duration',
@@ -22,17 +23,18 @@ export class Language {
             monthsName: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         },
         player: {
+            helpCommand: 'Help',
             created: 'Player has been created',
             destroy: 'Player has been destroyed',
-            brokenUrl: 'Broken Link',
+            brokenUrl: 'Broken link',
             paused: 'Player has been paused by',
             resumed: 'Player has been resumed by',
-            suffled: 'Playlist shuffled',
+            shuffled: 'Playlist has been shuffled',
             replay: 'Your song is going to be replayed when this song ends',
             forceReplay: 'Executing force replay',
-            alredyOnReplay: 'This song is already on list for replay',
-            skip: 'Track has been skiped by',
-            nothingToSuffle: 'Playlist dose not have enough song to shuffle',
+            alreadyOnReplay: 'This song is already on list for replay',
+            skip: 'Track has been skipped by',
+            nothingToShuffle: 'Playlist dose not have enough song to shuffle',
             statusPaused: 'Paused',
             statusPlaying: 'Playing',
             loopingOn: '🔁 Looping this song is now enabled ✔️',
@@ -40,21 +42,22 @@ export class Language {
             error: 'Error'
         },
         help: {
-            destroy: '<preifx> player destory - to destroy player',
-            replay: '<preifx> player replay - to replay track',
-            pause: '<preifx> player pause - to pause the track',
-            resume: '<preifx> player resume - to resumes paused track',
-            search: '<preifx> player search [search query] - to search youtube',
-            skip: '<preifx> player skip - to skips track',
-            url: '<preifx> player <youtube url> - to player url'
+            destroy: '<prefix>player destroy - to destroy player',
+            replay: '<prefix>player replay - to replay track',
+            pause: '<prefix>player pause - to pause the track',
+            resume: '<prefix>player resume - to resumes paused track',
+            search: '<prefix>player search [search query] - to search youtube',
+            skip: '<prefix>player skip - to skips track',
+            url: '<prefix>player <youtube url> - to player url'
         }
     };
 
     constructor(language?: PlayerLanguage) {
-        this.updatelanuage(language);
+        this.updateLanguage(language);
     }
-    updatelanuage(language?: PlayerLanguage) {
+    updateLanguage(language?: PlayerLanguage) {
         if (!language) return;
+        if (language.prefix) this.lang.prefix = language.prefix;
         if (language.notInVoiceChannel) this.lang.notInVoiceChannel = language.notInVoiceChannel;
         if (language.cannotConnect) this.lang.cannotConnect = language.cannotConnect;
         if (language.onlyYoutubeLinks) this.lang.onlyYoutubeLinks = language.onlyYoutubeLinks;
@@ -67,8 +70,8 @@ export class Language {
             const { video } = language;
 
             if (video.comments) this.lang.video.comments = video.comments;
-            if (video.upvote) this.lang.video.upvote = video.upvote;
-            if (video.downvote) this.lang.video.downvote = video.downvote;
+            if (video.upVote) this.lang.video.upVote = video.upVote;
+            if (video.downVote) this.lang.video.downVote = video.downVote;
             if (video.views) this.lang.video.views = video.views;
             if (video.duration) this.lang.video.duration = video.duration;
             if (video.progress) this.lang.video.progress = video.progress;
@@ -77,17 +80,18 @@ export class Language {
         }
         if (language.player) {
             const { player } = language;
+            if (player.helpCommand) this.lang.player.helpCommand = player.helpCommand;
             if (player.created) this.lang.player.created = player.created;
             if (player.destroy) this.lang.player.destroy = player.destroy;
             if (player.brokenUrl) this.lang.player.brokenUrl = player.brokenUrl;
             if (player.paused) this.lang.player.paused = player.paused;
             if (player.resumed) this.lang.player.resumed = player.resumed;
-            if (player.suffled) this.lang.player.suffled = player.suffled;
+            if (player.shuffled) this.lang.player.shuffled = player.shuffled;
             if (player.replay) this.lang.player.replay = player.replay;
             if (player.forceReplay) this.lang.player.forceReplay = player.forceReplay;
-            if (player.alredyOnReplay) this.lang.player.alredyOnReplay = player.alredyOnReplay;
+            if (player.alreadyOnReplay) this.lang.player.alreadyOnReplay = player.alreadyOnReplay;
             if (player.skip) this.lang.player.skip = player.skip;
-            if (player.nothingToSuffle) this.lang.player.nothingToSuffle = player.nothingToSuffle;
+            if (player.nothingToShuffle) this.lang.player.nothingToShuffle = player.nothingToShuffle;
             if (player.statusPaused) this.lang.player.statusPaused = player.statusPaused;
             if (player.statusPlaying) this.lang.player.statusPlaying = player.statusPlaying;
             if (player.loopingOn) this.lang.player.loopingOn = player.loopingOn;
@@ -104,18 +108,22 @@ export class Language {
             if (help.skip) this.lang.help.skip = help.skip;
             if (help.url) this.lang.help.url = help.url;
         }
-        else if (language.prefix) {
-            const { prefix } = language;
-            this.lang.help.destroy = `${prefix}player destory - to destroy player`;
-            this.lang.help.replay = `${prefix}player replay - to replay track`;
-            this.lang.help.pause = `${prefix}player pause - to pause the track`;
-            this.lang.help.resume = `${prefix}player resume - to resumes paused track`;
-            this.lang.help.search = `${prefix}player search [search query] - to search youtube`;
-            this.lang.help.skip = `${prefix}player skip - to skips track`;
-            this.lang.help.url = `${prefix}player <youtube url> - to player url`;
-        }
     }
+    setPrefix(prefix: string) {
+        this.lang.prefix = prefix;
+    }
+
     getLang() {
         return this.lang;
+    }
+
+    help(prefix?: string) {
+        const prefixToChange = prefix ? prefix : this.lang.prefix;
+        const object = { ...this.lang.help };
+        const keys = Object.keys(object);
+        for (const key of keys) {
+            object[key] = object[key].replace(/<prefix>/g, prefixToChange);
+        }
+        return object;
     }
 }
