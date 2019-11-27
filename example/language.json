@@ -1,0 +1,62 @@
+{
+	"notInVoiceChannel": "You have to be in voice channel in order to use player commands!",
+	"cannotConnect": "Im unable to connect to this channel! 😐",
+	"onlyYoutubeLinks": "Sorry but only Youtube links are supported",
+	"incorrectUse": "You are using player command incorrectly. Type `player help` to get more info",
+	"videoAdded": "Added by",
+	"luckSearch": "with luck search",
+	"missingPermission": "Missing permission you need to have role DJ to use command or being alone in channel also works.",
+	"alreadyOnPlaylist": "Requested track is already on playlist!",
+	"video": {
+		"comments": "Comments",
+		"downVote": "👎",
+		"upVote": "👍",
+		"ratting": "Ratting",
+		"views": "Views",
+		"published": "Published",
+		"duration": "Duration",
+		"progress": "Progress",
+		"monthsName": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+	},
+	"player": {
+		"helpCommand": "Help",
+		"searching": "🔎 Searching... (URL)",
+		"created": "Player has been created",
+		"destroy": "Player has been destroyed",
+		"brokenUrl": "Broken link",
+		"paused": "Player has been paused by",
+		"resumed": "Player has been resumed by",
+		"shuffled": "Playlist has been shuffled",
+		"replay": "Your song is going to be replayed when this song ends",
+		"forceReplay": "Executing force replay",
+		"alreadyOnReplay": "This song is already on list for replay",
+		"skip": "Track has been skipped by",
+		"nothingToShuffle": "Playlist dose not have enough song to shuffle",
+		"statusPaused": "Paused",
+		"statusPlaying": "Playing",
+		"loopingOn": "🔁 Looping this song is now enabled ✔️",
+		"loopingOff": "🔁 Looping this song is not disabled ❌",
+		"error": "Error"
+	},
+	"help": {
+		"destroy": "<prefix>player destroy - to destroy player",
+		"replay": "<prefix>player replay - to replay track",
+		"pause": "<prefix>player pause - to pause the track",
+		"resume": "<prefix>player resume - to resumes paused track",
+		"search": "<prefix>player search [search query] - to search youtube",
+		"skip": "<prefix>player skip - to skips track",
+		"url": "<prefix>player <youtube url> - to player url"
+	},
+	"commands": {
+		"destroy": ["destroy", "kill", "leave"],
+		"loop": ["loop", "repeat"],
+		"help": ["help", "?"],
+		"shuffle": ["shuffle", "mix"],
+		"next": ["next", ">>", "skip", "forward"],
+		"previous": ["previous", "<<", "backwards"],
+		"pause": ["pause"],
+		"replay": ["replay"],
+		"resume": ["resume"],
+		"playerCommands": ["player", "p"]
+	}
+}

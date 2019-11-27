@@ -3,16 +3,15 @@ const client = new Discord.Client();
 const {
 	YoutubePlayer
 } = require('../dist/YoutubePlayer');
+//const YoutubePlayer = require('../dist/DiscordInteractiveYoutubePlayer');
 
-const config = require('./config.json')
+const language = require('./language.slo.json');
 
-const botToken = config.discordToken
-const youtubeApiToken = config.youtubeApi
-const prefix = '!'
+const config = require('./config.json');
 
-const language = {
-	prefix
-}
+const botToken = config.discordToken;
+const youtubeApiToken = config.youtubeApi;
+const prefix = '!';
 
 const youtubePlayer = new YoutubePlayer(youtubeApiToken, language);
 youtubePlayer.deleteUserMessages = false;

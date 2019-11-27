@@ -86,6 +86,7 @@ export class Language {
 			if (video.upVote) this.lang.video.upVote = video.upVote;
 			if (video.downVote) this.lang.video.downVote = video.downVote;
 			if (video.views) this.lang.video.views = video.views;
+			if (video.published) this.lang.video.published = video.published;
 			if (video.duration) this.lang.video.duration = video.duration;
 			if (video.progress) this.lang.video.progress = video.progress;
 			if (video.monthsName && video.monthsName.length === 12)
@@ -93,6 +94,7 @@ export class Language {
 		}
 		if (language.player) {
 			const { player } = language;
+			if (player.searching) this.lang.player.searching = player.searching;
 			if (player.helpCommand) this.lang.player.helpCommand = player.helpCommand;
 			if (player.created) this.lang.player.created = player.created;
 			if (player.destroy) this.lang.player.destroy = player.destroy;

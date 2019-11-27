@@ -146,8 +146,8 @@ export class GuildPlayer extends EventEmitter {
 
 	getSongProgressionTime() {
 		if (!this.startTime) return null;
-		if (this.paused) {
-			return new Date(Date.now() - this.startTime.getTime()); // FIXME: fix time calculation
+		if (this.paused !== undefined) {
+			return this.paused;
 		}
 		return new Date(Date.now() - this.startTime.getTime());
 	}
@@ -157,12 +157,13 @@ export class GuildPlayer extends EventEmitter {
 	}
 
 	pause() {
-		this.paused = new Date(Date.now());
+		if (this.startTime)
+			this.paused = new Date(Date.now() - this.startTime.getTime());
 	}
 
 	unpause() {
 		if (this.paused && this.trackStartTime) {
-			this.trackStartTime = new Date(this.trackStartTime.getTime() - this.paused.getTime()); // FIXME: fix time calculation  
+			this.trackStartTime = new Date(Date.now() - this.paused.getTime());
 		}
 
 		this.paused = undefined;

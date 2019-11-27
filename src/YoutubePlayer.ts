@@ -19,6 +19,7 @@ const messageUpdateRate = new WeakMap<YoutubePlayer, number>();
 const selfDeleteTime = new WeakMap<YoutubePlayer, number>();
 const leaveVoiceChannelAfter = new WeakMap<YoutubePlayer, number>();
 const usePatch = new WeakMap<YoutubePlayer, boolean>();
+const isClientSet = new WeakMap<YoutubePlayer, boolean>();
 const youtubeKey = new WeakMap<YoutubePlayer, string>();
 const secondCommand = new WeakMap<YoutubePlayer, boolean>();
 const waitTimeBetweenTracks = new WeakMap<YoutubePlayer, number>();
@@ -31,7 +32,6 @@ const patch = {
 	highWaterMark: 1 << 25
 }
 
-let isClientSetUp = false;
 
 export class YoutubePlayer {
 
@@ -60,6 +60,7 @@ export class YoutubePlayer {
 		deleteUserMessage.set(this, true);
 		reactionButtons.set(this, true);
 		playerLanguage.set(this, new Language(language));
+		isClientSet.set(this, false);
 	}
 
     /**
@@ -282,8 +283,8 @@ function removeFistWord(text: string) {
 }
 
 function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
-	if (!isClientSetUp) {
-		isClientSetUp = true;
+	if (!isClientSet.get(youtubePlayer)) {
+		isClientSet.set(youtubePlayer, true);
 		client.on('voiceStateUpdate', guildMember => {
 			if (!guildMember.guild.me.voiceChannel) {
 				client.emit('debug', 'Bot has been disconnected from the voice channel');
@@ -626,6 +627,7 @@ async function destroyGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
 		info(textChannel, language.player.destroy)
 	}
 
+	delete guildData[guild.id];
 	guild.client.emit('debug', `[Youtube Player] [Status] Player destroyed in guild ${guild.id}`);
 }
 
@@ -653,6 +655,9 @@ function playerLoop(youtubePlayer: YoutubePlayer, connection: VoiceConnection) {
 			playerLoop(youtubePlayer, connection);
 		}, waitTimeBetweenTracks.get(youtubePlayer));
 	});
+	dispatcher.on('debug', info => {
+		connection.client.emit('debug', `[Dispatcher] [debug] ${info}`)
+	})
 	dispatcher.on('start', () => {
 		connection.client.emit('debug', `[Youtube Player] [Status] Track started in guild ${connection.channel.guild.id}`);
 		guildPlayer.setStartTime();
