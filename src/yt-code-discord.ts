@@ -63,8 +63,7 @@ export function garbageCollect(id: string) {
 	if (cache[id]) delete cache[id];
 }
 
-export function getStream(info: ytdl.videoInfo): opus.Encoder | opus.WebmDemuxer {
-	let options;
+export function getStream(info: ytdl.videoInfo, options = {}): opus.Encoder | opus.WebmDemuxer {
 
 	const lengthSeconds = parseInt(info.length_seconds)
 	// Prefer opus
@@ -103,11 +102,11 @@ export function getStream(info: ytdl.videoInfo): opus.Encoder | opus.WebmDemuxer
 
 }
 
-export function getVideoInfoPlusStream(url: string): Promise<opus.Encoder | opus.WebmDemuxer> {
+export function getVideoInfoPlusStream(url: string, options = {}): Promise<opus.Encoder | opus.WebmDemuxer> {
 	return new Promise(async (resolve, rejects) => {
 		try {
 			const videoInfo = await getYTInfo(url);
-			resolve(getStream(videoInfo));
+			resolve(getStream(videoInfo, options));
 			return;
 		} catch (error) {
 			rejects(error);

@@ -1,31 +1,33 @@
 {
-    "name": "discordmusicbotsystem",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "build": "tsc",
-        "build:watch": "tsc -w",
-        "start": "node ./example/index.js",
-        "nodemon": "node ./example/index.js"
-    },
-    "author": "Lidcer",
-    "license": "ISC",
-    "dependencies": {
-        "discord.js": "^11.5.1",
-        "ffmpeg-binaries": "^4.0.0",
-        "ffmpeg-static": "^2.5.0",
-        "get-video-id": "^3.1.4",
-        "lodash": "^4.17.15",
-        "node-opus": "^0.3.2",
-        "simple-youtube-api": "^5.2.1",
-        "youtube-api": "^2.0.10",
-        "ytdl-core-discord": "^1.0.3"
-    },
-    "devDependencies": {
-        "@types/lodash": "^4.14.149",
-        "@types/node": "^12.6.8",
-        "nodemon": "^1.19.1",
-        "typescript": "^3.5.3"
-    }
+	"name": "discordmusicbotsystem",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc",
+		"build:watch": "tsc -w",
+		"start": "node ./example/index.js",
+		"nodemon": "nodemon ./example/index.js",
+		"nodemon:inspect": "nodemon --inspect ./example/index.js"
+	},
+	"author": "Lidcer",
+	"license": "ISC",
+	"dependencies": {
+		"discord.js": "^11.5.1",
+		"ffmpeg-binaries": "^4.0.0",
+		"ffmpeg-static": "^2.5.0",
+		"get-video-id": "^3.1.4",
+		"lodash": "^4.17.15",
+		"node-opus": "^0.3.2",
+		"prism-media": "^1.1.0",
+		"simple-youtube-api": "^5.2.1",
+		"youtube-api": "^2.0.10",
+		"ytdl-core-discord": "^1.0.3"
+	},
+	"devDependencies": {
+		"@types/lodash": "^4.14.149",
+		"@types/node": "^12.6.8",
+		"nodemon": "^1.19.1",
+		"typescript": "^3.5.3"
+	}
 }

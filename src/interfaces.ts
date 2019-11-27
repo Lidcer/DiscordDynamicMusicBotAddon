@@ -1,4 +1,4 @@
-import { GuildMember, TextChannel, Message } from 'discord.js';
+import { GuildMember } from 'discord.js';
 import { GuildPlayer } from './playlist';
 
 export interface VideoData {
@@ -39,11 +39,13 @@ export interface PlayerLanguage {
 	video: VideoLanguage;
 	player: Player;
 	help: Help;
+	commands: Commands;
 	prefix: string;
 }
 
 export interface Player {
 	helpCommand: string;
+	searching: string;
 	created: string;
 	destroy: string;
 	paused: string;
@@ -60,6 +62,20 @@ export interface Player {
 	loopingOff: string;
 	skip: string;
 	error: string;
+}
+
+export interface Commands {
+	destroy: string[];
+	next: string[];
+	previous: string[];
+	help: string[];
+	loop: string[];
+	shuffle: string[];
+	pause: string[];
+	replay: string[];
+	resume: string[];
+	playerCommands: string[];
+
 }
 
 export interface Help {

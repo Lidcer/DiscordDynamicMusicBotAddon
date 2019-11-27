@@ -14,7 +14,11 @@ export function sliderGenerator(pos, maxPos) {
 
 export class Youtube {
 
-	static getVideoInfo(youtubeApiKey: string, url): Promise<VideoData> {
+	static testKey(youtubeApiKey: string) {
+		new SimpleYoutubeApi(youtubeApiKey);
+	}
+
+	static getVideoInfo(youtubeApiKey: string, url: string): Promise<VideoData> {
 		return new Promise(async (resolve, reject) => {
 			const youtube = new SimpleYoutubeApi(youtubeApiKey);
 
