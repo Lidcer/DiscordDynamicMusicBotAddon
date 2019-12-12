@@ -1,221 +1,245 @@
-import { VideoData } from "./interfaces";
+import { VideoInfo } from './interfaces';
 import { opus } from 'prism-media';
-import * as getVideoId from 'get-video-id'
-import { GuildMember, TextChannel, Message } from "discord.js";
-import { EventEmitter } from "events";
-import { random } from "lodash";
-import { getStream } from "./yt-code-discord";
-import ytdl = require("ytdl-core");
+import * as getVideoId from 'get-video-id';
+import { GuildMember, TextChannel, Message } from 'discord.js';
+import { EventEmitter } from 'events';
+import { random } from 'lodash';
+import { getStream } from './yt-code-discord';
+import ytdl = require('ytdl-core');
 export interface PlaylistItem {
-	videoData: VideoData;
-	steamOptions: any;
-	videoInfo: ytdl.videoInfo;
-	stream: opus.Encoder | opus.WebmDemuxer;
-	submitter: GuildMember;
-	submitted: Date;
+    videoData?: VideoInfo;
+    steamOptions: any;
+    videoInfo: ytdl.videoInfo;
+    stream: opus.Encoder | opus.WebmDemuxer;
+    submitter: GuildMember;
+    submitted: Date;
+    message?: Message;
 }
 
 export declare interface GuildPlayer {
-	on(event: 'update', listener: () => void): this;
-	on(event: 'start', listener: () => void): this;
+    on(event: 'update', listener: () => void): this;
+    on(event: 'start', listener: () => void): this;
 }
 
 export class GuildPlayer extends EventEmitter {
 
-	readonly previous: PlaylistItem[] = []
-	readonly playlist: PlaylistItem[] = []
-	private currentlyPlaying?: PlaylistItem;
-	private textChannel?: TextChannel;
-	private interval?: NodeJS.Timeout;
-	private trackStartTime?: Date;
-	private paused?: Date;
-	private message?: Message;
-	private suspended = false;
-	private rgb: number[] = [0, 0, 0];
-	buttons = false;
-	waitForUpdate = false;
-	loop = false;
+    voteNext: GuildMember[] = [];
+    votePrevious: GuildMember[] = [];
+    voteReplay: GuildMember[] = [];
+    buttons = false;
+    waitForUpdate = false;
+    loop = false;
+    readonly previous: PlaylistItem[] = [];
+    readonly playlist: PlaylistItem[] = [];
+    private currentlyPlaying?: PlaylistItem;
+    private textChannel?: TextChannel;
+    private interval?: NodeJS.Timeout;
+    private trackStartTime?: Date;
+    private paused?: Date;
+    private message?: Message;
+    private suspended = false;
+    private rgb: number[] = [0, 0, 0];
 
-	constructor() {
-		super();
-		this.rgb = [random(0, 225), random(0, 225), random(0, 225)]
-	}
+    constructor() {
+        super();
+        this.rgb = [random(0, 225), random(0, 225), random(0, 225)];
+    }
 
-	push(item: PlaylistItem): boolean {
-		if (this.playlist.find(v => v.videoData.id === item.videoData.id)) {
-			return false;
-		}
-		else {
-			this.playlist.push(item);
-			if (this.suspended) {
-				this.suspended = false;
-				this.emit('start');
-			}
-			return true;
-		}
-	}
+    isAlreadyOnPlaylistByUrl(url: string) {
+        const data = getVideoId(url);
+        if (data.id && data.service === 'youtube') {
+            return this.isAlreadyOnPlaylistById(data.id);
+        }
+        return false;
+    }
 
-	switchToNextSong() {
-		if (this.loop) return this.getNewStream(this.currentlyPlaying);
-		this.currentlyPlaying = this.playlist.shift();
-		if (this.currentlyPlaying)
-			this.previous.push(this.currentlyPlaying);
-		return this.getNewStream(this.currentlyPlaying);
-	}
+    isAlreadyOnPlaylistById(id: string) {
+        const playlistItem = this.playlist.find(v => v.videoInfo.video_id === id);
+        if (playlistItem) {
+            return playlistItem.videoInfo.title;
+        } else {
+            return false;
+        }
+    }
+    setStartTime() {
+        this.trackStartTime = new Date(Date.now());
+    }
 
-	switchToPreviousSong() {
-		if (this.loop) return this.getNewStream(this.currentlyPlaying);
+    resetTime() {
+        this.trackStartTime = undefined;
+    }
 
-		this.currentlyPlaying = this.previous.pop();
-		if (this.currentlyPlaying)
-			this.playlist.unshift(this.currentlyPlaying);
-		return this.getNewStream(this.currentlyPlaying)
-	}
+    setTextChannel(textChannel: TextChannel) {
+        this.textChannel = textChannel;
+    }
 
-	private getNewStream(playlistItem?: PlaylistItem) {
-		if (playlistItem) {
-			playlistItem.stream = getStream(playlistItem.videoInfo, playlistItem.steamOptions);
-		}
-		return playlistItem;
-	}
+    getTextChannel() {
+        return this.textChannel;
+    }
 
-	get currentPlayListItem() {
-		return this.currentlyPlaying;
-	}
+    updateRate(n: number) {
+        this.clearTimeout();
+        this.interval = setInterval(() => {
+            this.colorFader();
 
-	isAlreadyOnPlaylistByUrl(url: string) {
-		const data = getVideoId(url);
-		if (data.id && data.service === 'youtube') {
-			return this.isAlreadyOnPlaylistByUrl(data.id);
-		}
-		return null;
-	}
+            if (!this.waitForUpdate) {
+                this.emit('update');
+            }
+        }, n);
+    }
 
-	isAlreadyOnPlaylistById(id: string) {
-		const playlistItem = this.playlist.find(v => v.videoData.id === id);
-		if (playlistItem) {
-			return playlistItem.videoData.title;
-		} else {
-			return false;
-		}
-	}
+    suspend() {
+        this.suspended = true;
+    }
 
-	get length() {
-		return this.playlist.length;
-	}
-	setStartTime() {
-		this.trackStartTime = new Date(Date.now());
-	}
-	get startTime() {
-		return this.trackStartTime
-	}
+    clearTimeout() {
+        if (this.interval) {
+            clearTimeout(this.interval);
+        }
+        this.interval = undefined;
+    }
 
-	resetTime() {
-		this.trackStartTime = undefined;
-	}
+    getSongProgressionTime() {
+        if (!this.startTime) return null;
+        if (this.paused !== undefined) {
+            return this.paused;
+        }
+        return new Date(Date.now() - this.startTime.getTime());
+    }
 
-	setTextChannel(textChannel: TextChannel) {
-		this.textChannel = textChannel;
-	}
+    destroy() {
+        this.clearTimeout();
+    }
 
-	getTextChannel() {
-		return this.textChannel;
-	}
+    pause() {
+        if (this.startTime)
+            this.paused = new Date(Date.now() - this.startTime.getTime());
+    }
 
-	updateRate(number: number) {
-		this.clearTimeout();
-		this.interval = setInterval(() => {
-			this.colorFader();
+    unpause() {
+        if (this.paused && this.trackStartTime) {
+            this.trackStartTime = new Date(Date.now() - this.paused.getTime());
+        }
 
-			if (!this.waitForUpdate) {
-				this.emit('update');
-			}
-		}, number);
-	}
+        this.paused = undefined;
+    }
 
-	suspend() {
-		this.suspended = true;
-	}
+    shuffle(): boolean {
+        if (this.playlist.length > 2) {
+            this.playlist.sort(() => Math.random() - 0.5);
+            return true;
+        }
+        return false;
+    }
 
-	clearTimeout() {
-		if (this.interval) {
-			clearTimeout(this.interval);
-		}
-		this.interval = undefined;
-	}
+    push(item: PlaylistItem): boolean {
+        if (this.playlist.find(v => v.videoInfo.video_id === item.videoInfo.video_id)) {
+            return false;
+        } else {
+            this.playlist.push(item);
+            if (this.suspended) {
+                this.suspended = false;
+                this.emit('start');
+            }
+            return true;
+        }
+    }
 
-	getSongProgressionTime() {
-		if (!this.startTime) return null;
-		if (this.paused !== undefined) {
-			return this.paused;
-		}
-		return new Date(Date.now() - this.startTime.getTime());
-	}
+    switchToNextSong() {
+        this.clearVotes();
+        if (this.loop) return this.getNewStream(this.currentlyPlaying);
+        this.currentlyPlaying = this.playlist.shift();
+        if (this.currentlyPlaying)
+            this.previous.push(this.currentlyPlaying);
+        return this.getNewStream(this.currentlyPlaying);
+    }
 
-	destroy() {
-		this.clearTimeout();
-	}
+    switchToPreviousSong() {
+        this.clearVotes();
+        if (this.loop) return this.getNewStream(this.currentlyPlaying);
 
-	pause() {
-		if (this.startTime)
-			this.paused = new Date(Date.now() - this.startTime.getTime());
-	}
+        this.currentlyPlaying = this.previous.pop();
+        if (this.currentlyPlaying)
+            this.playlist.unshift(this.currentlyPlaying);
+        return this.getNewStream(this.currentlyPlaying)
+    }
+    clearVotes() {
+        this.voteNext = [];
+        this.votePrevious = [];
+        this.votePrevious = [];
+    }
 
-	unpause() {
-		if (this.paused && this.trackStartTime) {
-			this.trackStartTime = new Date(Date.now() - this.paused.getTime());
-		}
+    addRemoveUser(voteGroup: GuildMember[], guildMember: GuildMember): boolean {
+        if (voteGroup.includes(guildMember)) {
+            const index = voteGroup.indexOf(guildMember);
+            voteGroup.splice(index, 1);
+            return false;
+        } else {
+            voteGroup.push(guildMember);
+            return true;
+        }
+    }
 
-		this.paused = undefined;
-	}
+    private getNewStream(playlistItem?: PlaylistItem) {
+        if (playlistItem) {
+            playlistItem.stream = getStream(playlistItem.videoInfo, playlistItem.steamOptions);
+        }
+        return playlistItem;
+    }
 
-	shuffle() {
-		this.playlist.sort(() => Math.random() - 0.5);
-	}
+    get currentPlayListItem() {
+        return this.currentlyPlaying;
+    }
 
-	set playerMessage(message: Message | undefined) {
-		this.message = message;
-	}
+    get length() {
+        return this.playlist.length;
+    }
+    get startTime() {
+        return this.trackStartTime;
+    }
 
-	get playerMessage() {
-		return this.message;
-	}
+    set playerMessage(message: Message | undefined) {
+        this.message = message;
+    }
 
-	get color() {
-		return this.rgb;
-	}
+    get playerMessage() {
+        return this.message;
+    }
 
-	get isPaused() {
-		return !!this.paused;
-	}
-	get isLooping() {
-		return !!this.loop;
-	}
+    get color() {
+        return this.rgb;
+    }
 
-	private colorFader() {
+    get isPaused() {
+        return !!this.paused;
+    }
+    get isLooping() {
+        return !!this.loop;
+    }
 
-		const increaser = 11;
+    private colorFader() {
 
-		if (this.rgb[0] > 0 && this.rgb[1] <= 0) {
-			this.rgb[0] -= increaser;
-			this.rgb[2] += increaser;
-		}
-		if (this.rgb[2] > 0 && this.rgb[0] <= 0) {
-			this.rgb[2] -= increaser;
-			this.rgb[1] += increaser;
-		}
-		if (this.rgb[1] > 0 && this.rgb[2] <= 0) {
-			this.rgb[0] += increaser;
-			this.rgb[1] -= increaser;
-		}
+        const increaser = 11;
 
-		if (this.rgb[0] < 0) this.rgb[0] = 0;
-		if (this.rgb[1] < 0) this.rgb[1] = 0;
-		if (this.rgb[2] < 0) this.rgb[2] = 0;
-		if (this.rgb[0] > 255) this.rgb[0] = 255;
-		if (this.rgb[1] > 255) this.rgb[1] = 255;
-		if (this.rgb[2] > 255) this.rgb[2] = 255;
-		return this.rgb;
-	}
+        if (this.rgb[0] > 0 && this.rgb[1] <= 0) {
+            this.rgb[0] -= increaser;
+            this.rgb[2] += increaser;
+        }
+        if (this.rgb[2] > 0 && this.rgb[0] <= 0) {
+            this.rgb[2] -= increaser;
+            this.rgb[1] += increaser;
+        }
+        if (this.rgb[1] > 0 && this.rgb[2] <= 0) {
+            this.rgb[0] += increaser;
+            this.rgb[1] -= increaser;
+        }
 
+        if (this.rgb[0] < 0) this.rgb[0] = 0;
+        if (this.rgb[1] < 0) this.rgb[1] = 0;
+        if (this.rgb[2] < 0) this.rgb[2] = 0;
+        if (this.rgb[0] > 255) this.rgb[0] = 255;
+        if (this.rgb[1] > 255) this.rgb[1] = 255;
+        if (this.rgb[2] > 255) this.rgb[2] = 255;
+        return this.rgb;
+    }
 }
