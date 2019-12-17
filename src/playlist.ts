@@ -1,11 +1,14 @@
 import { VideoInfo } from './interfaces';
 import { opus } from 'prism-media';
-import * as getVideoId from 'get-video-id';
 import { GuildMember, TextChannel, Message } from 'discord.js';
 import { EventEmitter } from 'events';
 import { random } from 'lodash';
-import { getStream } from './yt-code-discord';
+import { getStream } from './yt-core-discord';
 import ytdl = require('ytdl-core');
+
+// @ts-ignore declaration files does not exist.
+import getVideoId from 'get-video-id';
+
 export interface PlaylistItem {
     videoData?: VideoInfo;
     steamOptions: any;

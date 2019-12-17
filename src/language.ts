@@ -11,6 +11,8 @@ export class Language {
         missingPermission: 'Missing permission you need to have role DJ to use command or being alone in channel also works.',
         alreadyOnPlaylist: 'Requested track is already on playlist!',
         prefix: '',
+        toLongTrack: 'Requested track <trackurl> to long. Max length of track <maxlength> minutes',
+        toLongTrackLuckSearch: 'Track <trackname> is to long to be played. Max length of track <maxlength> minutes',
         video: {
             comments: 'Comments',
             downVote: '👎',
@@ -35,7 +37,7 @@ export class Language {
             forceReplay: 'Executing force replay',
             alreadyOnReplay: 'This song is already on list for replay',
             skip: 'Track has been skipped',
-            nothingToShuffle: 'Playlist dose not have enough song to shuffle',
+            nothingToShuffle: 'Playlist does not have enough song to shuffle',
             statusPaused: 'Paused',
             statusPlaying: 'Playing',
             loopingOn: '🔁 Looping this song is now enabled ✔️',

@@ -64,9 +64,7 @@ export function garbageCollect(id: string) {
 }
 
 export function getStream(info: ytdl.videoInfo, options = {}): opus.Encoder | opus.WebmDemuxer {
-
     const lengthSeconds = parseInt(info.length_seconds);
-    // Prefer opus
     const format = info.formats.find(filter);
     const canDemux = format && lengthSeconds !== 0;
     if (canDemux) options = { ...options, filter, highWaterMark: 1 << 25 };
@@ -99,7 +97,6 @@ export function getStream(info: ytdl.videoInfo, options = {}): opus.Encoder | op
         });
         return stream;
     }
-
 }
 
 export function getVideoInfoPlusStream(url: string, options = {}): Promise<opus.Encoder | opus.WebmDemuxer> {

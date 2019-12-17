@@ -2,6 +2,7 @@ import { RichEmbed, TextChannel, Message } from 'discord.js';
 import { YoutubePlayer, playerLanguage } from './YoutubePlayer';
 import { VideoInfo } from './interfaces';
 import { PlaylistItem } from './playlist';
+import { escapeRegExp } from 'lodash';
 
 export class Embeds {
 
@@ -18,7 +19,6 @@ export class Embeds {
         embed.addField(title, msg);
         return embed;
     }
-
 }
 
 function basicEmbed() {
@@ -34,8 +34,13 @@ export function errorInfo(channel: TextChannel, content: string, deleteNumber?: 
                 .then(m => {
                     if (deleteNumber) {
                         setTimeout(() => {
-                            if (!Array.isArray(m)) m.delete().catch(() => { });
-                            else m.forEach(m => m.delete().catch(() => { }));
+                            if (!Array.isArray(m)) m.delete()
+                                .catch(err => {
+                                    channel.client.emit(err);
+                                });
+                            else m.forEach(m => m.delete().catch(err => {
+                                channel.client.emit(err);
+                            }));
                         }, deleteNumber);
                     }
                     resolve(m);
@@ -49,8 +54,12 @@ export function errorInfo(channel: TextChannel, content: string, deleteNumber?: 
                 .then(m => {
                     if (deleteNumber) {
                         setTimeout(() => {
-                            if (!Array.isArray(m)) m.delete().catch(() => { });
-                            else m.forEach(m => m.delete().catch(() => { }));
+                            if (!Array.isArray(m)) m.delete().catch(err => {
+                                channel.client.emit(err);
+                            });
+                            else m.forEach(m => m.delete().catch(err => {
+                                channel.client.emit(err);
+                            }));
                         }, deleteNumber);
                     }
                     resolve(m);
@@ -71,8 +80,12 @@ export function info(channel: TextChannel, content: string, deleteNumber?: numbe
                     resolve(m);
                     if (deleteNumber) {
                         setTimeout(() => {
-                            if (!Array.isArray(m)) m.delete().catch(() => { });
-                            else m.forEach(m => m.delete().catch(() => { }));
+                            if (!Array.isArray(m)) m.delete().catch(err => {
+                                channel.client.emit(err);
+                            });
+                            else m.forEach(m => m.delete().catch(err => {
+                                channel.client.emit(err);
+                            }));
                         }, deleteNumber);
                     }
                 })
@@ -86,8 +99,12 @@ export function info(channel: TextChannel, content: string, deleteNumber?: numbe
                     resolve(m);
                     if (deleteNumber) {
                         setTimeout(() => {
-                            if (!Array.isArray(m)) m.delete().catch(() => { });
-                            else m.forEach(m => m.delete().catch(() => { }));
+                            if (!Array.isArray(m)) m.delete().catch(err => {
+                                channel.client.emit(err);
+                            });
+                            else m.forEach(m => m.delete().catch(err => {
+                                channel.client.emit(err);
+                            }));
                         }, deleteNumber);
                     }
                 })
@@ -102,8 +119,12 @@ export function info(channel: TextChannel, content: string, deleteNumber?: numbe
 export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, playlistItem: PlaylistItem) {
     const videoInfo = playlistItem.videoData ? playlistItem.videoData : playlistItem.videoInfo;
     const language = playerLanguage.get(playerObject)!.getLang();
-    embed.setAuthor(videoInfo.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
-    embed.setTitle(videoInfo.title);
+    if (playlistItem.videoData) {
+        embed.setAuthor(videoInfo.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
+        embed.setTitle(videoInfo.title);
+    } else {
+        embed.setDescription(`[${videoInfo.author.name}](${videoInfo.author.channel_url})\n**[${videoInfo.title}](${videoInfo.video_url})**`);
+    }
     embed.setColor('RED');
     embed.setURL(videoInfo.video_url);
     embed.setThumbnail(videoInfo.thumbnail_url);
@@ -117,7 +138,7 @@ export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, play
 
     const richVideoInfo = videoInfo as VideoInfo;
     if (richVideoInfo.statistics) {
-        const viewCount = richVideoInfo.statistics.viewCount.toString().match(/.{1,3}/g); // .join(',')
+        const viewCount = richVideoInfo.statistics.viewCount.toString().match(/.{1,3}/g);
         const views = richVideoInfo.statistics.viewCount < 10000 ? richVideoInfo.statistics.viewCount : viewCount ? viewCount.join(',') : viewCount;
         const commentCount = richVideoInfo.statistics.viewCount.toString().match(/.{1,3}/g);
         const comments = richVideoInfo.statistics.commentCount < 10000 ? richVideoInfo.statistics.commentCount : commentCount ? commentCount.join(',') : commentCount;
@@ -145,10 +166,78 @@ export function canEmbed(channel?: TextChannel | undefined): boolean {
     return me.has('EMBED_LINKS');
 }
 
+export function sliderGenerator(pos: number, maxPos: number) {
+    let slider = '';
+    const radioButtonPos = Math.floor(pos * 30 / maxPos);
+    for (let i = 0; i < 30; i++) {
+        if (radioButtonPos === i) slider += '🔘';
+        else slider += '▬';
+    }
+    return slider;
+}
+
 // TODO : Fix it **test** *
 export function discordEscapedCharacters(text: string) {
-    return text
-        .replace(/`/g, '\`')
-        .replace(/\*/g, '\*')
-        .replace(/\*/g, '\_');
+    const strikeThroughs = text.match(/~~([\s\S]+?)~~(?!_)/g);
+    const spoilers = text.match(/||([\s\S]+?)||(?!_)/g);
+    const graveAccents = text.match(/`([\s\S]+?)`(?!_)/g);
+    const graveAccentTripples = text.match(/```([\s\S]+?)```(?!_)/g);
+    const bolds = text.match(/\*\*([\s\S]+?)\*\*(?!_)/g);
+    const italics = text.match(/\*([\s\S]+?)\*(?!_)/g);
+    const underlines = text.match(/__([\s\S]+?)__(?!_)/g);
+
+    if (strikeThroughs) text = arrayReplace(strikeThroughs, text, __)
+
+    if (graveAccents) {
+        for (const graveAccent of graveAccents) {
+            const removedgraveAccent = graveAccent.replace(/`/g, '\\`');
+            text = text.replace(graveAccent, removedgraveAccent);
+        }
+    }
+    if (graveAccentTripples) {
+        for (const graveAccentTripple of graveAccentTripples) {
+            const removedgraveAccentTripple = graveAccentTripple.replace(/`/g, '\\`\\`\\`');
+            text = text.replace(graveAccentTripple, removedgraveAccentTripple);
+        }
+    }
+
+    if (spoilers) {
+        for (const spoiler of spoilers) {
+            const removedSpoiler = spoiler.replace(/~~/g, '\\|\\|');
+            text = text.replace(spoiler, removedSpoiler);
+        }
+    }
+    if (bolds) {
+        for (const bold of bolds) {
+            const removedbold = bold.replace(/\*\*/g, '\\*\\*');
+            text = text.replace(bold, removedbold);
+        }
+    }
+    if (italics) {
+        for (const italic of italics) {
+            const removeditalic = italic.replace(/\*/g, '\\*');
+            text = text.replace(italic, removeditalic);
+        }
+    }
+    if (underlines) {
+        for (const underline of underlines) {
+            const removedunderline = underline.replace(/__/g, '\\_\\_');
+            text = text.replace(underline, removedunderline);
+        }
+    }
+    return text;
+
+}
+
+export function arrayReplace(text: string, character: string) {
+    const rexExpEscapedcharacter = escapeRegExp(character);
+    console.log(rexExpEscapedcharacter)
+    const array = text.match(new RegExp(`${rexExpEscapedcharacter}([\\s\\S]+?)${rexExpEscapedcharacter}`));
+    console.log(array)
+    if (!array) return text;
+    for (const item of array) {
+        const removedItem = item.replace(new RegExp(character), character);
+        text = text.replace(removedItem, item);
+    }
+    return text;
 }

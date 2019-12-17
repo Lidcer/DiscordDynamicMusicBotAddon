@@ -43,6 +43,8 @@ export interface PlayerLanguage {
     commands: Commands;
     vote: Vote;
     prefix: string;
+    toLongTrack: string;
+    toLongTrackLuckSearch: string;
 }
 
 export interface Vote {
