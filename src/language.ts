@@ -26,6 +26,7 @@ export class Language {
         },
         player: {
             helpCommand: 'Help',
+            nothingPlaying: 'Nothing is playing',
             searching: `🔎 Searching... (URL)`,
             created: 'Player has been created',
             destroy: 'Player has been destroyed',
@@ -51,7 +52,12 @@ export class Language {
                 next: 'Next',
                 previous: 'Previous',
                 replay: 'Replay',
-                votePauseResume: 'Pause or Resume',
+                pauseResume: 'Pause or Resume',
+                loop: 'Loop',
+                alreadyVoted: 'You already voted',
+                voteSuccessful: 'You have voted',
+                notAllowed: 'You are not allowed to vote sorry',
+                notVoted: "You haven't vote.",
             },
         },
         help: {

@@ -1,4 +1,4 @@
-import { VideoInfo } from './interfaces';
+import { VideoInfo, PlayerLanguage } from './interfaces';
 import { opus } from 'prism-media';
 import { GuildMember, TextChannel, Message, Guild } from 'discord.js';
 import { EventEmitter } from 'events';
@@ -8,6 +8,7 @@ import ytdl = require('ytdl-core');
 
 // @ts-ignore declaration files does not exist.
 import getVideoId from 'get-video-id';
+import { YoutubePlayer } from './YoutubePlayer';
 
 export interface PlaylistItem {
     videoData?: VideoInfo;
@@ -19,22 +20,33 @@ export interface PlaylistItem {
     message?: Message;
 }
 
+export enum VoteInfo {
+    NO_PERMISSION = 0,
+    ALREADY_VOTE = 1,
+    VOTE_SUCCESSFUL = 2,
+    VOTE_EXECUTED = 3,
+}
+
+export declare type VoteType = 'voteNext' | 'votePrevious' | 'voteReplay' | 'votePauseResume' | 'voteLoop';
 export declare interface GuildPlayer {
     on(event: 'update', listener: () => void): this;
     on(event: 'start', listener: () => void): this;
+
 }
 
 export class GuildPlayer extends EventEmitter {
 
-    voteNext: GuildMember[] = [];
-    votePrevious: GuildMember[] = [];
-    voteReplay: GuildMember[] = [];
-    votePauseResume: GuildMember[] = [];
     buttons = false;
     waitForUpdate = false;
     loop = false;
     readonly previous: PlaylistItem[] = [];
     readonly playlist: PlaylistItem[] = [];
+    private votePercentage: number;
+    private voteNext: GuildMember[] = [];
+    private votePrevious: GuildMember[] = [];
+    private voteReplay: GuildMember[] = [];
+    private votePauseResume: GuildMember[] = [];
+    private voteLoop: GuildMember[] = [];
     private currentlyPlaying?: PlaylistItem;
     private textChannel?: TextChannel;
     private interval?: NodeJS.Timeout;
@@ -44,8 +56,12 @@ export class GuildPlayer extends EventEmitter {
     private suspended = false;
     private rgb: number[] = [0, 0, 0];
 
-    constructor() {
+    constructor(
+        private guild: Guild,
+        private youtubePlayer: YoutubePlayer,
+        votePercentage: number) {
         super();
+        this.votePercentage = votePercentage;
         this.rgb = [random(0, 225), random(0, 225), random(0, 225)];
     }
 
@@ -66,81 +82,51 @@ export class GuildPlayer extends EventEmitter {
         }
     }
 
-    addVotePauseResume(guildMember: GuildMember): boolean {
-        if (guildMember.user.bot) return false;
-        if (!this.votePauseResume.includes(guildMember)) {
-            this.votePauseResume.push(guildMember);
-            const users = this.getVoiceChannelUsers(guildMember.guild);
-            if (users * 0.6 < this.votePauseResume.length) return true;
+    addVote(guildMember: GuildMember, type: VoteType): VoteInfo {
+        if (guildMember.user.bot) return VoteInfo.NO_PERMISSION;
+        if (this.canExecute(guildMember)) {
+            this.onVoteSuccessful(type);
+            return VoteInfo.VOTE_EXECUTED;
+        }
+        if (!this[type].includes(guildMember)) {
+            this[type].push(guildMember);
+            const users = this.getVoiceChannelUsers();
+            if (users * this.votePercentage < this[type].length) {
+                this.onVoteSuccessful(type);
+                return VoteInfo.VOTE_EXECUTED;
+            } else {
+                return VoteInfo.VOTE_SUCCESSFUL;
+            }
+        } else return VoteInfo.ALREADY_VOTE;
+    }
+
+    setVote(guildMembers: GuildMember[], type: VoteType): boolean {
+        this.votePauseResume = guildMembers;
+        for (const guildMember of guildMembers) {
+            if (this.canExecute(guildMember)) {
+                this.onVoteSuccessful(type);
+                return true;
+            }
+        }
+        const users = this.getVoiceChannelUsers();
+        if (users * this.votePercentage < this.votePauseResume.length) {
+            this.onVoteSuccessful(type);
+            return true;
         }
         return false;
     }
 
-    removeVotePauseResume(guildMember: GuildMember) {
-        if (guildMember.user.bot) return;
-        if (this.votePauseResume.includes(guildMember)) {
-            const index = this.votePauseResume.indexOf(guildMember);
-            this.votePauseResume.splice(index, 1);
-        }
+    removeVote(guildMember: GuildMember, type: VoteType): VoteInfo {
+        if (guildMember.user.bot) return VoteInfo.NO_PERMISSION;
+        if (this[type].includes(guildMember)) {
+            const index = this[type].indexOf(guildMember);
+            this[type].splice(index, 1);
+            return VoteInfo.VOTE_EXECUTED;
+        } else return VoteInfo.ALREADY_VOTE;
     }
 
-    addVoteNext(guildMember: GuildMember): boolean {
-        if (guildMember.user.bot) return false;
-        if (!this.voteNext.includes(guildMember)) {
-            this.voteNext.push(guildMember);
-            const users = this.getVoiceChannelUsers(guildMember.guild);
-            if (users * 0.6 < this.voteNext.length) return true;
-        }
-        return false;
-    }
-
-    removeVoteNext(guildMember: GuildMember) {
-        if (guildMember.user.bot) return;
-        if (this.voteNext.includes(guildMember)) {
-            const index = this.voteNext.indexOf(guildMember);
-            this.voteNext.splice(index, 1);
-        }
-    }
-
-    addVotePrevious(guildMember: GuildMember): boolean {
-        if (guildMember.user.bot) return false;
-        if (!this.votePrevious.includes(guildMember)) {
-            this.votePrevious.push(guildMember);
-            const users = this.getVoiceChannelUsers(guildMember.guild);
-            if (users * 0.6 < this.votePrevious.length) return true;
-        }
-        return false;
-    }
-
-    removeVotePrevious(guildMember: GuildMember) {
-        if (guildMember.user.bot) return;
-        if (this.votePrevious.includes(guildMember)) {
-            const index = this.votePrevious.indexOf(guildMember);
-            this.votePrevious.splice(index, 1);
-        }
-    }
-
-    addVoteReplay(guildMember: GuildMember): boolean {
-        if (guildMember.user.bot) return false;
-        if (!this.voteReplay.includes(guildMember)) {
-            this.voteReplay.push(guildMember);
-            const users = this.getVoiceChannelUsers(guildMember.guild);
-            if (users * 0.6 < this.voteReplay.length) return true;
-        }
-        return false;
-    }
-
-    removeVoteReplay(guildMember: GuildMember) {
-        if (guildMember.user.bot) return;
-        if (this.voteReplay.includes(guildMember)) {
-            const index = this.voteReplay.indexOf(guildMember);
-            this.voteReplay.splice(index, 1);
-        }
-    }
-
-    getVoiceChannelUsers(guild: Guild) {
-        if (!guild) return 0;
-        const voiceConnection = guild.voiceConnection;
+    getVoiceChannelUsers() {
+        const voiceConnection = this.guild.voiceConnection;
         if (!voiceConnection) return 0;
         return voiceConnection.channel.members.filter(u => !u.user.bot).size;
     }
@@ -200,14 +186,11 @@ export class GuildPlayer extends EventEmitter {
     }
 
     pause() {
-        if (this.startTime)
-            this.paused = new Date(Date.now() - this.startTime.getTime());
+        if (this.startTime) this.paused = new Date(Date.now() - this.startTime.getTime());
     }
 
     unpause() {
-        if (this.paused && this.trackStartTime) {
-            this.trackStartTime = new Date(Date.now() - this.paused.getTime());
-        }
+        if (this.paused && this.trackStartTime) this.trackStartTime = new Date(Date.now() - this.paused.getTime());
 
         this.paused = undefined;
     }
@@ -269,6 +252,103 @@ export class GuildPlayer extends EventEmitter {
         }
     }
 
+    nextTrack() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) voiceConnection.dispatcher.end();
+    }
+
+    pauseTrack() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) {
+            this.pause();
+            voiceConnection.dispatcher.pause();
+        }
+    }
+
+    resumeTrack() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) {
+            this.unpause();
+            voiceConnection.dispatcher.resume();
+        }
+    }
+
+    replayTrack() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) {
+            this.switchToPreviousSong();
+            voiceConnection.dispatcher.end();
+        }
+    }
+
+    previousTrack() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) {
+            this.switchToPreviousSong();
+            this.switchToPreviousSong();
+            voiceConnection.dispatcher.end();
+        }
+    }
+
+    shuffleQueue(message: Message, language: PlayerLanguage) {
+        const voiceConnection = message.guild.voiceConnection;
+        if (voiceConnection && voiceConnection.dispatcher) {
+            if (this.shuffle()) {
+                message.channel.send(language.player.nothingToShuffle).catch(error => message.client.emit('error', error));
+            } else {
+                message.channel.send(language.player.shuffled).catch(error => message.client.emit('error', error));
+            }
+        }
+    }
+
+    private onVoteSuccessful(type: VoteType) {
+        switch (type) {
+            case 'voteNext':
+                this.nextTrack();
+                return;
+            case 'voteLoop':
+                this.loop = !this.loop;
+                return;
+            case 'votePauseResume':
+                this.pauseResume();
+                return;
+            case 'votePrevious':
+                this.previousTrack();
+                return;
+            case 'voteReplay':
+                this.replayTrack();
+            default:
+                break;
+        }
+    }
+
+    private pauseResume() {
+        const voiceConnection = this.guild.voiceConnection;
+        if (!voiceConnection) return;
+        const dispatcher = voiceConnection.dispatcher;
+        if (!dispatcher) return;
+        if (dispatcher.paused) {
+            this.unpause();
+            dispatcher.resume();
+        } else {
+            this.pause();
+            dispatcher.pause();
+        }
+    }
+    private canExecute(guildMembers: GuildMember[] | GuildMember): boolean {
+        if (!Array.isArray(guildMembers)) {
+            return guildMembers.hasPermission('MANAGE_CHANNELS');
+        }
+
+        if (guildMembers.length === 0) return false;
+        let i = 0;
+        for (const guildMember of guildMembers) {
+            if (guildMember.hasPermission('MANAGE_CHANNELS')) return true;
+            i++;
+        }
+        return i === guildMembers.length ? true : false;
+    }
+
     private getNewStream(playlistItem?: PlaylistItem) {
         if (playlistItem) {
             playlistItem.stream = getStream(playlistItem.videoInfo, playlistItem.steamOptions);
@@ -309,27 +389,33 @@ export class GuildPlayer extends EventEmitter {
 
     get voteNextStatus() {
         if (this.voteNext.length === 0) return null;
-        const users = this.getVoiceChannelUsers(this.voteNext[0].guild);
+        const users = this.getVoiceChannelUsers();
         if (users === 0) return null;
         return `${this.voteNext.length}/${users}`;
     }
     get votePreviousStatus() {
         if (this.votePrevious.length === 0) return null;
-        const users = this.getVoiceChannelUsers(this.votePrevious[0].guild);
+        const users = this.getVoiceChannelUsers();
         if (users === 0) return null;
         return `${this.votePrevious.length}/${users}`;
     }
     get voteReplayStatus() {
         if (this.voteReplay.length === 0) return null;
-        const users = this.getVoiceChannelUsers(this.voteReplay[0].guild);
+        const users = this.getVoiceChannelUsers();
         if (users === 0) return null;
         return `${this.voteReplay.length}/${users}`;
     }
     get votePauseResumeStatus() {
         if (this.votePauseResume.length === 0) return null;
-        const users = this.getVoiceChannelUsers(this.votePauseResume[0].guild);
+        const users = this.getVoiceChannelUsers();
         if (users === 0) return null;
         return `${this.votePauseResume.length}/${users}`;
+    }
+    get voteLoopStatus() {
+        if (this.voteLoop.length === 0) return null;
+        const users = this.getVoiceChannelUsers();
+        if (users === 0) return null;
+        return `${this.voteLoop.length}/${users}`;
     }
 
     private colorFader() {

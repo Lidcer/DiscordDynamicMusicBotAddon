@@ -14,7 +14,7 @@ export class Youtube {
         return new Promise(async (resolve, reject) => {
             await this.simpleYoutubeApi.getVideo(url, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
                 .then(async (video: any) => {
-                    resolve(this.formatVideo(video));
+                    resolve(await this.formatVideo(video));
                 })
                 .catch((error: any) => {
                     reject(error);
@@ -30,7 +30,7 @@ export class Youtube {
 
                     this.simpleYoutubeApi.getVideoByID(video[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
                         .then(async (video: any) => {
-                            resolve(this.formatVideo(video));
+                            resolve(await this.formatVideo(video));
                         })
                         .catch((error: any) => {
                             reject(error);
@@ -53,17 +53,16 @@ export class Youtube {
         else if (video.thumbnails.default) videoThumbnail = video.thumbnails.default.url;
         else if (video.thumbnails.standard) videoThumbnail = video.thumbnails.standard.url;
 
-        let channelThumbnail = '';
+        let channelThumbnail = null;
         if (channel.thumbnails.medium) channelThumbnail = channel.thumbnails.default.url;
         else if (channel.thumbnails.default) channelThumbnail = channel.thumbnails.standard.url;
         else if (channel.thumbnails.standard) channelThumbnail = channel.thumbnails.medium.url;
-
         const videoData: VideoInfo = {
             id: video.id,
             video_url: `https://youtu.be/${video.id}`,
             thumbnail_url: videoThumbnail,
             title: video.title,
-            duration: length,
+            duration: length / 60 / 60,
             published: video.publishedAt,
             statistics: {
                 commentCount: parseInt(video.raw.statistics.commentCount),

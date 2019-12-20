@@ -1,7 +1,7 @@
 import { RichEmbed, TextChannel, Message } from 'discord.js';
 import { YoutubePlayer, playerLanguage } from './YoutubePlayer';
 import { VideoInfo } from './interfaces';
-import { PlaylistItem } from './Playlist';
+import { PlaylistItem } from './GuildPlayer';
 import { escapeRegExp } from 'lodash';
 
 export class Embeds {
@@ -120,7 +120,8 @@ export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, play
     const videoInfo = playlistItem.videoData ? playlistItem.videoData : playlistItem.videoInfo;
     const language = playerLanguage.get(playerObject)!.getLang();
     if (playlistItem.videoData) {
-        embed.setAuthor(videoInfo.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
+        console.log(playlistItem.videoData.author.avatar)
+        embed.setAuthor(playlistItem.videoData.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
         embed.setTitle(videoInfo.title);
     } else {
         embed.setDescription(`[${videoInfo.author.name}](${videoInfo.author.channel_url})\n**[${videoInfo.title}](${videoInfo.video_url})**`);

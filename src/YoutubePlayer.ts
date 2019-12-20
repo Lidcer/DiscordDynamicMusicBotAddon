@@ -1,9 +1,9 @@
-import { Message, Guild, RichEmbed, TextChannel, Client, VoiceConnection, ColorResolvable, GuildMember } from 'discord.js';
+import { Message, Guild, RichEmbed, TextChannel, Client, VoiceConnection, ColorResolvable, GuildMember, MessageReaction } from 'discord.js';
 import { canEmbed, errorInfo, info, addBasicInfo, sliderGenerator } from './embeds';
 import { Youtube } from './Youtube';
 import { PlayerLanguage, GuildData } from './interfaces';
 import { Language } from './language';
-import { GuildPlayer, PlaylistItem } from './Playlist';
+import { GuildPlayer, PlaylistItem, VoteInfo } from './GuildPlayer';
 import { getYTInfo, getStream } from './yt-core-discord';
 
 const youtubeLogo = 'https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png'; // Youtube icon
@@ -26,6 +26,8 @@ const secondCommand = new WeakMap<YoutubePlayer, boolean>();
 const waitTimeBetweenTracks = new WeakMap<YoutubePlayer, number>();
 const maxItemsInPlayList = new WeakMap<YoutubePlayer, number>();
 const maxUserItemsInPlayList = new WeakMap<YoutubePlayer, number>();
+const votePercentage = new WeakMap<YoutubePlayer, number>();
+const coolDown = new WeakMap<YoutubePlayer, number>();
 const deleteUserMessage = new WeakMap<YoutubePlayer, boolean>();
 const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 export const playerLanguage = new WeakMap<YoutubePlayer, Language>();
@@ -71,6 +73,8 @@ export class YoutubePlayer {
         maxVideoLength.set(this, 60 * 3);
         maxItemsInPlayList.set(this, 100);
         maxUserItemsInPlayList.set(this, 10);
+        votePercentage.set(this, 0.6);
+        coolDown.set(this, 5);
     }
 
     /**
@@ -112,6 +116,16 @@ export class YoutubePlayer {
     }
 
     /**
+     * User command cool down. How much does bot needs to wait before accepting new command
+     * @param {number} number time
+     */
+    set userCoolDown(seconds: number) {
+        if (typeof seconds !== 'number') throw new Error(`Expected number got ${typeof seconds}`);
+        if (seconds < 0) throw new Error('cooldown cannot be lower than 0');
+        coolDown.set(this, seconds * 1000);
+    }
+
+    /**
      * Set wait time between tracks
      * @param {number} number how much should player wait.
      */
@@ -148,6 +162,18 @@ export class YoutubePlayer {
         if (typeof seconds !== 'number') throw new Error(`Expected number got ${typeof seconds}`);
         leaveVoiceChannelAfter.set(this, seconds * 1000);
     }
+
+    /**
+     * When bot runs out of songs how long should wait before disconnecting voice channel
+     * @param {number} number in seconds. If set to 0 it will leave immediately.
+     */
+    set votePercentage(percentage: number) {
+        if (typeof percentage !== 'number') throw new Error(`Expected number got ${typeof percentage}`);
+        if (percentage < 0) throw new Error(`Number cannot be lower than 0`);
+        if (percentage > 100) throw new Error(`Number cannot be higher than 100`);
+        votePercentage.set(this, percentage / 100);
+    }
+
 
     /**
      * Should message be rubbish collected
@@ -241,28 +267,29 @@ export class YoutubePlayer {
                 destroyGuildPlayer(this, message.guild);
                 return;
             } else if (commendChecker(checker, commands.next)) {
-                requestNextTrack(this, message);
+                commandNextTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.previous)) {
-                requestPreviousTrack(this, message);
+                commandPreviousTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.help)) {
                 playerHelp(this, message);
                 return;
             } else if (commendChecker(checker, commands.pause)) {
-                pauseTrack(this, message);
+                commandPauseOrReplyTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.resume)) {
-                resumeTrack(this, message);
-                return;
+                commandPauseOrReplyTrack(this, message);
             } else if (commendChecker(checker, commands.replay)) {
-                requestReplayTrack(this, message);
+                commandReplayTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.loop)) {
-                loopTrack(this, message);
+                commandLoopTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.shuffle)) {
-                shuffleQueue(this, message);
+                const guildData = guildPlayer.get(this)!;
+                if (!guildData[message.guild.id]) message.channel.send(language.player.nothingPlaying);
+                else getGuildPlayer(this, message.guild).shuffleQueue(message, language);
                 return;
             } else {
                 const urls = checker.match(youtubeTester);
@@ -316,7 +343,45 @@ function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
             }
         });
 
-        client.on('messageReactionAdd', messageReaction => {
+        const emojiWatcher = (theGuildPlayer: GuildPlayer, guildMembers: GuildMember[], emoji: string) => {
+            switch (emoji) {
+                case '⏸️':
+                    if (theGuildPlayer.setVote(guildMembers, 'votePauseResume')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                case '▶️':
+                    if (theGuildPlayer.setVote(guildMembers, 'votePauseResume')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                case '⏮️':
+                    if (theGuildPlayer.setVote(guildMembers, 'votePrevious')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                case '⏭️':
+                    if (theGuildPlayer.setVote(guildMembers, 'voteNext')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                case '🔁':
+                    if (theGuildPlayer.setVote(guildMembers, 'voteLoop')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                case '🔂':
+                    if (theGuildPlayer.setVote(guildMembers, 'voteLoop')) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                    break;
+                // case '🔀':
+                //     if (theGuildPlayer.setVoteShuffle(guildMembers)) recreateOrRecreatePlayerButtons(theGuildPlayer);
+                //     break;
+                default:
+                    break;
+            }
+        };
+
+        const getUsersFromReactions = (messageReaction: MessageReaction) => {
+            const guildMembers: GuildMember[] = [];
+            const guild = messageReaction.message.guild;
+            for (const user of messageReaction.users.map(u => u)) {
+                const guildMember = guild.members.find(m => m.user === user);
+                if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
+            }
+            return guildMembers;
+        };
+
+        const onMessageReactionAddOrRemove = (messageReaction: MessageReaction) => {
             if (!messageReaction.message.guild) return;
             const guild = messageReaction.message.guild;
             const guildData = guildPlayer.get(youtubePlayer)!;
@@ -324,67 +389,19 @@ function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
             if (!theGuildPlayer) return;
             if (theGuildPlayer.playerMessage !== messageReaction.message) return;
 
-            const guildMembers: GuildMember[] = [];
+            const guildMembers = getUsersFromReactions(messageReaction);
+            emojiWatcher(theGuildPlayer, guildMembers, messageReaction.emoji.name);
+        };
 
-            for (const user of messageReaction.users.map(u => u)) {
-                const guildMember = guild.members.find(m => m.user === user);
-                if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
-            }
-
-            switch (messageReaction.emoji.name) {
-                case '⏸️':
-                    if (canExecute(guildMembers)) {
-                        pauseTrack(youtubePlayer, messageReaction.message);
-                        recreateOrRecreatePlayerButtons(theGuildPlayer);
-                    }
-                    break;
-                case '▶️':
-                    if (canExecute(guildMembers)) {
-                        resumeTrack(youtubePlayer, messageReaction.message);
-                        recreateOrRecreatePlayerButtons(theGuildPlayer);
-                    }
-                    break;
-                case '⏮️':
-                    if (canExecute(guildMembers)) {
-                        previousTrack(youtubePlayer, messageReaction.message);
-                    }
-                    break;
-                case '⏭️':
-                    if (canExecute(guildMembers)) {
-                        nextTrack(messageReaction.message);
-
-                    }
-
-                    break;
-                /*
-                    case '🔁':
-                        if (canExecute(guildMembers)) loopTrack(youtubePlayer, messageReaction.message);
-                        break;
-                    case '🔂':
-                        if (canExecute(guildMembers)) stopLooping(youtubePlayer, messageReaction.message);
-                        break;
-                    case '🔀':
-                        if (canExecute(guildMembers)) randomPlaying(youtubePlayer, messageReaction.message);
-                        break;
-                    default:
-                        break;
-                */
-            }
+        client.on('messageReactionAdd', messageReaction => {
+            onMessageReactionAddOrRemove(messageReaction);
         });
-    }
-}
-function canExecute(guildMembers: GuildMember[] | GuildMember): boolean {
-    if (!Array.isArray(guildMembers)) {
-        return guildMembers.hasPermission('MANAGE_CHANNELS');
-    }
 
-    if (guildMembers.length === 0) return false;
-    let i = 0;
-    for (const guildMember of guildMembers) {
-        if (guildMember.hasPermission('MANAGE_CHANNELS')) return true;
-        i++;
+        client.on('messageReactionRemove', messageReaction => {
+            onMessageReactionAddOrRemove(messageReaction);
+        });
+
     }
-    return i === guildMembers.length ? true : false;
 }
 
 async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message, urls: RegExpMatchArray) {
@@ -410,7 +427,7 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
             const options = usePatch.get(youtubePlayer) ? patch : {};
             const videoInfo = await getYTInfo(url);
             const maxTrackLength = maxVideoLength.get(youtubePlayer)!;
-            if (parseInt(videoInfo.length_seconds) > maxTrackLength) {
+            if (parseInt(videoInfo.length_seconds) / 60 > maxTrackLength) {
                 errorInfo(message.channel as TextChannel, language.toLongTrack.replace(/<trackurl>/g, `<${videoInfo.video_url}>`).replace(/<maxlength>/g, maxTrackLength.toString()));
                 break;
             }
@@ -422,6 +439,7 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
                 submitted: new Date(Date.now()),
                 submitter: message.member,
             };
+            console.log(playlistItem.videoData?.author)
             if (player.push(playlistItem)) {
                 playlistItems.push(playlistItem);
             }
@@ -464,7 +482,7 @@ async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message,
         const result = await youtubeClass.searchOnLuck(query);
         const maxTrackLength = maxVideoLength.get(youtubePlayer)!;
         if (result.duration > maxTrackLength) {
-            errorInfo(message.channel as TextChannel, language.toLongTrack.replace(/<trackurl>/g, `<${result.duration}>`).replace(/<maxlength>/g, maxTrackLength.toString()));
+            errorInfo(message.channel as TextChannel, language.toLongTrack.replace(/<trackurl>/g, `${result.video_url}`).replace(/<maxlength>/g, maxTrackLength.toString()));
             return;
         }
 
@@ -489,6 +507,7 @@ async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message,
         }
     } catch (error) {
         errorInfo(message.channel as TextChannel, error.toString(), selfDeleteTime.get(youtubePlayer));
+        message.client.emit('error', error);
         return;
     }
 
@@ -537,7 +556,7 @@ function playerHelp(playerObject: YoutubePlayer, message: Message, prefix?: stri
 function getGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
     const guildData = guildPlayer.get(youtubePlayer)!;
     if (!guildData[guild.id]) {
-        guildData[guild.id] = new GuildPlayer()
+        guildData[guild.id] = new GuildPlayer(guild, youtubePlayer, votePercentage.get(youtubePlayer)!)
             .on('update', () => {
                 updatePlayer(youtubePlayer, guild);
             })
@@ -549,21 +568,6 @@ function getGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
         guildData[guild.id].buttons = (reactionButtons.get(youtubePlayer)!);
     }
     return guildData[guild.id];
-}
-
-function loopTrack(youtubePlayer: YoutubePlayer, message: Message) {
-    const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-    const language = playerLanguage.get(youtubePlayer)!.getLang();
-
-    if (!verifyUser(youtubePlayer, message)) return;
-
-    if (guildPlayer.loop) {
-        guildPlayer.loop = false;
-        message.channel.send(language.player.loopingOff).catch(error => message.client.emit('error', error));
-    } else {
-        guildPlayer.loop = true;
-        message.channel.send(language.player.loopingOn).catch(error => message.client.emit('error', error));
-    }
 }
 
 function sendQueueVideoInfo(youtubePlayer: YoutubePlayer, message: Message, playlistItems: PlaylistItem[], search = false) {
@@ -648,20 +652,6 @@ async function startPlayer(youtubePlayer: YoutubePlayer, message: Message): Prom
     });
 }
 
-async function destroyGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
-    const guildData = guildPlayer.get(youtubePlayer)!;
-    if (!guildData[guild.id]) return;
-    const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const textChannel = guildData[guild.id].getTextChannel();
-    guildData[guild.id].destroy();
-
-    if (guild.me.voiceChannel && guild.me.voiceChannel.connection) guild.me.voiceChannel.connection.disconnect();
-    if (textChannel) info(textChannel, language.player.destroy);
-
-    delete guildData[guild.id];
-    guild.client.emit('debug', `[Youtube Player] [Status] Player destroyed in guild ${guild.id}`);
-}
-
 function playerLoop(youtubePlayer: YoutubePlayer, connection: VoiceConnection) {
     const guildPlayer = getGuildPlayer(youtubePlayer, connection.channel.guild);
     if (!guildPlayer.switchToNextSong()) {
@@ -726,13 +716,15 @@ async function updatePlayer(youtubePlayer: YoutubePlayer, guild: Guild, fullUpda
     const voteNext = guildPlayer.voteNextStatus;
     const votePrevious = guildPlayer.votePreviousStatus;
     const voteReplay = guildPlayer.voteReplayStatus;
-    const votePauseResume = guildPlayer.votePauseResume;
-    if (voteNext || votePrevious || voteReplay || votePauseResume) {
+    const votePauseResume = guildPlayer.votePauseResumeStatus;
+    const voteLoopStatus = guildPlayer.voteLoopStatus;
+    if (voteNext || votePrevious || voteReplay || votePauseResume || voteLoopStatus) {
         const vote: string[] = [];
         if (voteNext) vote.push(`${language.player.vote.next} ${voteNext}`);
         if (voteReplay) vote.push(`${language.player.vote.replay} ${voteReplay}`);
         if (votePrevious) vote.push(`${language.player.vote.previous} ${votePrevious}`);
-        if (votePauseResume) vote.push(`${language.player.vote.votePauseResume} ${votePauseResume}`);
+        if (votePauseResume) vote.push(`${language.player.vote.pauseResume} ${votePauseResume}`);
+        if (voteLoopStatus) vote.push(`${language.player.vote.loop} ${voteLoopStatus}`);
         embed.addField(language.player.vote.vote, vote.join('\n'));
     }
 
@@ -807,134 +799,62 @@ async function recreateOrRecreatePlayerButtons(guildPlayer: GuildPlayer) {
     }
 }
 
-function nextTrack(message: Message/*, force = false*/): any {
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        voiceConnection.dispatcher.end();
-    }
-}
-
-function pauseTrack(youtubePlayer: YoutubePlayer, message: Message) {
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-        guildPlayer.pause();
-        voiceConnection.dispatcher.pause();
-    }
-}
-
-function resumeTrack(youtubePlayer: YoutubePlayer, message: Message) {
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-        guildPlayer.unpause();
-        voiceConnection.dispatcher.resume();
-    }
-}
-
-function replayTrack(youtubePlayer: YoutubePlayer, message: Message) {
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-        guildPlayer.switchToPreviousSong();
-        voiceConnection.dispatcher.end();
-    }
-}
-
-function previousTrack(youtubePlayer: YoutubePlayer, message: Message) {
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-        guildPlayer.switchToPreviousSong();
-        guildPlayer.switchToPreviousSong();
-        voiceConnection.dispatcher.end();
-    }
-}
-
-function shuffleQueue(youtubePlayer: YoutubePlayer, message: Message) {
+async function destroyGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
+    const guildData = guildPlayer.get(youtubePlayer)!;
+    if (!guildData[guild.id]) return;
     const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const voiceConnection = message.guild.voiceConnection;
-    if (voiceConnection && voiceConnection.dispatcher) {
-        const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-        if (guildPlayer.shuffle()) {
-            message.channel.send(language.player.nothingToShuffle).catch(error => message.client.emit('error', error));
-        } else {
-            message.channel.send(language.player.shuffled).catch(error => message.client.emit('error', error));
-        }
-    }
+    const textChannel = guildData[guild.id].getTextChannel();
+    guildData[guild.id].destroy();
+
+    if (guild.me.voiceChannel && guild.me.voiceChannel.connection) guild.me.voiceChannel.connection.disconnect();
+    if (textChannel) info(textChannel, language.player.destroy);
+
+    delete guildData[guild.id];
+    guild.client.emit('debug', `[Youtube Player] [Status] Player destroyed in guild ${guild.id}`);
 }
 
-function verifyUser(youtubePlayer: YoutubePlayer, message: Message): boolean {
-    const language = playerLanguage.get(youtubePlayer)!.getLang();
-
-    if (message.guild.voiceConnection && message.guild.voiceConnection.channel.members.size <= 2) return true;
-    if (message.member.hasPermission('ADMINISTRATOR') || message.member.hasPermission('MANAGE_CHANNELS')) return true;
-
-    else {
-        info(message.channel as TextChannel, language.missingPermission);
-        return false;
-    }
-}
-
-function requestNextTrack(youtubePlayer: YoutubePlayer, message: Message) {
+function commandNextTrack(youtubePlayer: YoutubePlayer, message: Message) {
     const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-    const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const voteUsers = guildPlayer.voteNext;
-
-    if (canExecute(message.member)) {
-        nextTrack(message);
-        return;
-    }
-
-    if (guildPlayer.addRemoveUser(voteUsers, message.member)) {
-        if (canExecute(voteUsers)) {
-            nextTrack(message);
-            info(message.channel as TextChannel, language.player.skip, selfDeleteTime.get(youtubePlayer)!);
-        } else {
-            info(message.channel as TextChannel, language.vote.voteNext, selfDeleteTime.get(youtubePlayer)!);
-        }
-    } else
-        info(message.channel as TextChannel, language.vote.removedVote, selfDeleteTime.get(youtubePlayer)!);
+    sendVoteInfo(youtubePlayer, message, guildPlayer.addVote(message.member, 'voteNext'));
 }
 
-function requestPreviousTrack(youtubePlayer: YoutubePlayer, message: Message) {
+function commandPauseOrReplyTrack(youtubePlayer: YoutubePlayer, message: Message) {
     const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
-    const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const voteUsers = guildPlayer.voteNext;
-
-    if (canExecute(message.member)) {
-        previousTrack(youtubePlayer, message);
-        return;
-    }
-
-    if (guildPlayer.addRemoveUser(voteUsers, message.member)) {
-        if (canExecute(voteUsers)) {
-            previousTrack(youtubePlayer, message);
-            info(message.channel as TextChannel, language.player.previous, selfDeleteTime.get(youtubePlayer)!);
-        } else {
-            info(message.channel as TextChannel, language.vote.votePrevious, selfDeleteTime.get(youtubePlayer)!);
-        }
-    } else
-        info(message.channel as TextChannel, language.vote.removedVote, selfDeleteTime.get(youtubePlayer)!);
+    sendVoteInfo(youtubePlayer, message, guildPlayer.addVote(message.member, 'votePauseResume'));
 }
 
-function requestReplayTrack(youtubePlayer: YoutubePlayer, message: Message) {
+function commandPreviousTrack(youtubePlayer: YoutubePlayer, message: Message) {
     const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
+    sendVoteInfo(youtubePlayer, message, guildPlayer.addVote(message.member, 'votePrevious'));
+}
+
+function commandLoopTrack(youtubePlayer: YoutubePlayer, message: Message) {
+    const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
+    sendVoteInfo(youtubePlayer, message, guildPlayer.addVote(message.member, 'voteLoop'));
+}
+
+function commandReplayTrack(youtubePlayer: YoutubePlayer, message: Message) {
+    const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
+    sendVoteInfo(youtubePlayer, message, guildPlayer.addVote(message.member, 'voteReplay'));
+}
+
+async function sendVoteInfo(youtubePlayer: YoutubePlayer, message: Message, status: VoteInfo) {
     const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const voteUsers = guildPlayer.voteNext;
-
-    if (canExecute(message.member)) {
-        replayTrack(youtubePlayer, message);
-        return;
+    switch (status) {
+        case VoteInfo.NO_PERMISSION:
+            await errorInfo(message.channel as TextChannel, language.player.vote.notAllowed);
+            break;
+        case VoteInfo.ALREADY_VOTE:
+            await errorInfo(message.channel as TextChannel, language.player.vote.alreadyVoted);
+            break;
+        case VoteInfo.VOTE_EXECUTED:
+            // await errorInfo(message.channel as TextChannel, language.player.vote.alreadyVoted);
+            break;
+        case VoteInfo.VOTE_SUCCESSFUL:
+            await errorInfo(message.channel as TextChannel, language.player.vote.voteSuccessful);
+            break;
+        default:
+            break;
     }
-
-    if (guildPlayer.addRemoveUser(voteUsers, message.member)) {
-        if (canExecute(voteUsers)) {
-            replayTrack(youtubePlayer, message);
-            info(message.channel as TextChannel, language.player.replay, selfDeleteTime.get(youtubePlayer)!);
-        } else {
-            info(message.channel as TextChannel, language.vote.votePrevious, selfDeleteTime.get(youtubePlayer)!);
-        }
-    } else
-        info(message.channel as TextChannel, language.vote.removedVote, selfDeleteTime.get(youtubePlayer)!);
+    updatePlayer(youtubePlayer, message.guild, true);
 }
