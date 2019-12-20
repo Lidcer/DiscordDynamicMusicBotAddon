@@ -1,6 +1,6 @@
 import { VideoInfo } from './interfaces';
 import { opus } from 'prism-media';
-import { GuildMember, TextChannel, Message } from 'discord.js';
+import { GuildMember, TextChannel, Message, Guild } from 'discord.js';
 import { EventEmitter } from 'events';
 import { random } from 'lodash';
 import { getStream } from './yt-core-discord';
@@ -29,6 +29,7 @@ export class GuildPlayer extends EventEmitter {
     voteNext: GuildMember[] = [];
     votePrevious: GuildMember[] = [];
     voteReplay: GuildMember[] = [];
+    votePauseResume: GuildMember[] = [];
     buttons = false;
     waitForUpdate = false;
     loop = false;
@@ -64,6 +65,90 @@ export class GuildPlayer extends EventEmitter {
             return false;
         }
     }
+
+    addVotePauseResume(guildMember: GuildMember): boolean {
+        if (guildMember.user.bot) return false;
+        if (!this.votePauseResume.includes(guildMember)) {
+            this.votePauseResume.push(guildMember);
+            const users = this.getVoiceChannelUsers(guildMember.guild);
+            if (users * 0.6 < this.votePauseResume.length) return true;
+        }
+        return false;
+    }
+
+    removeVotePauseResume(guildMember: GuildMember) {
+        if (guildMember.user.bot) return;
+        if (this.votePauseResume.includes(guildMember)) {
+            const index = this.votePauseResume.indexOf(guildMember);
+            this.votePauseResume.splice(index, 1);
+        }
+    }
+
+    addVoteNext(guildMember: GuildMember): boolean {
+        if (guildMember.user.bot) return false;
+        if (!this.voteNext.includes(guildMember)) {
+            this.voteNext.push(guildMember);
+            const users = this.getVoiceChannelUsers(guildMember.guild);
+            if (users * 0.6 < this.voteNext.length) return true;
+        }
+        return false;
+    }
+
+    removeVoteNext(guildMember: GuildMember) {
+        if (guildMember.user.bot) return;
+        if (this.voteNext.includes(guildMember)) {
+            const index = this.voteNext.indexOf(guildMember);
+            this.voteNext.splice(index, 1);
+        }
+    }
+
+    addVotePrevious(guildMember: GuildMember): boolean {
+        if (guildMember.user.bot) return false;
+        if (!this.votePrevious.includes(guildMember)) {
+            this.votePrevious.push(guildMember);
+            const users = this.getVoiceChannelUsers(guildMember.guild);
+            if (users * 0.6 < this.votePrevious.length) return true;
+        }
+        return false;
+    }
+
+    removeVotePrevious(guildMember: GuildMember) {
+        if (guildMember.user.bot) return;
+        if (this.votePrevious.includes(guildMember)) {
+            const index = this.votePrevious.indexOf(guildMember);
+            this.votePrevious.splice(index, 1);
+        }
+    }
+
+    addVoteReplay(guildMember: GuildMember): boolean {
+        if (guildMember.user.bot) return false;
+        if (!this.voteReplay.includes(guildMember)) {
+            this.voteReplay.push(guildMember);
+            const users = this.getVoiceChannelUsers(guildMember.guild);
+            if (users * 0.6 < this.voteReplay.length) return true;
+        }
+        return false;
+    }
+
+    removeVoteReplay(guildMember: GuildMember) {
+        if (guildMember.user.bot) return;
+        if (this.voteReplay.includes(guildMember)) {
+            const index = this.voteReplay.indexOf(guildMember);
+            this.voteReplay.splice(index, 1);
+        }
+    }
+
+    getVoiceChannelUsers(guild: Guild) {
+        if (!guild) return 0;
+        const voiceConnection = guild.voiceConnection;
+        if (!voiceConnection) return 0;
+        return voiceConnection.channel.members.filter(u => !u.user.bot).size;
+    }
+
+    howManySongsDoesMemberHasInPlaylist(guildMember: GuildMember) {
+        return this.playlist.filter(i => i.submitter === guildMember).length;
+    }
+
     setStartTime() {
         this.trackStartTime = new Date(Date.now());
     }
@@ -164,8 +249,9 @@ export class GuildPlayer extends EventEmitter {
         this.currentlyPlaying = this.previous.pop();
         if (this.currentlyPlaying)
             this.playlist.unshift(this.currentlyPlaying);
-        return this.getNewStream(this.currentlyPlaying)
+        return this.getNewStream(this.currentlyPlaying);
     }
+
     clearVotes() {
         this.voteNext = [];
         this.votePrevious = [];
@@ -216,12 +302,37 @@ export class GuildPlayer extends EventEmitter {
     get isPaused() {
         return !!this.paused;
     }
+
     get isLooping() {
         return !!this.loop;
     }
 
-    private colorFader() {
+    get voteNextStatus() {
+        if (this.voteNext.length === 0) return null;
+        const users = this.getVoiceChannelUsers(this.voteNext[0].guild);
+        if (users === 0) return null;
+        return `${this.voteNext.length}/${users}`;
+    }
+    get votePreviousStatus() {
+        if (this.votePrevious.length === 0) return null;
+        const users = this.getVoiceChannelUsers(this.votePrevious[0].guild);
+        if (users === 0) return null;
+        return `${this.votePrevious.length}/${users}`;
+    }
+    get voteReplayStatus() {
+        if (this.voteReplay.length === 0) return null;
+        const users = this.getVoiceChannelUsers(this.voteReplay[0].guild);
+        if (users === 0) return null;
+        return `${this.voteReplay.length}/${users}`;
+    }
+    get votePauseResumeStatus() {
+        if (this.votePauseResume.length === 0) return null;
+        const users = this.getVoiceChannelUsers(this.votePauseResume[0].guild);
+        if (users === 0) return null;
+        return `${this.votePauseResume.length}/${users}`;
+    }
 
+    private colorFader() {
         const increaser = 11;
 
         if (this.rgb[0] > 0 && this.rgb[1] <= 0) {

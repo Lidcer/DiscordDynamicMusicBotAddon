@@ -1,5 +1,5 @@
 import { GuildMember } from 'discord.js';
-import { GuildPlayer } from './playlist';
+import { GuildPlayer } from './Playlist';
 
 export interface VideoInfo {
     id: string;
@@ -73,6 +73,16 @@ export interface Player {
     loopingOff: string;
     skip: string;
     error: string;
+    playlistFull: string;
+    toManyUserSongs: string;
+    vote: VoteStats;
+}
+export interface VoteStats {
+    vote: string;
+    next: string;
+    previous: string;
+    replay: string;
+    votePauseResume: string;
 }
 
 export interface Commands {

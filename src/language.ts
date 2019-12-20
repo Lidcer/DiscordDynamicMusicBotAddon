@@ -44,6 +44,15 @@ export class Language {
             loopingOff: '🔁 Looping this song is not disabled ❌',
             error: 'Error',
             previous: 'Track switched to previous track',
+            playlistFull: 'Playlist is full',
+            toManyUserSongs: 'You have to many songs in the play list. Try removing few of them and try again.',
+            vote: {
+                vote: 'Vote',
+                next: 'Next',
+                previous: 'Previous',
+                replay: 'Replay',
+                votePauseResume: 'Pause or Resume',
+            },
         },
         help: {
             destroy: '<prefix>player destroy - to destroy player',

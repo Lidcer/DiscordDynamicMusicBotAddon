@@ -1,10 +1,10 @@
 import { VideoInfo } from './interfaces';
 // @ts-ignore Declaration files does not exist.
-import * as SimpleYoutubeApi from 'simple-youtube-api';
+const SimpleYoutubeApi = require('simple-youtube-api');
 
 export class Youtube {
 
-    private simpleYoutubeApi: SimpleYoutubeApi;
+    private simpleYoutubeApi: any;
 
     constructor(key: string) {
         this.simpleYoutubeApi = new SimpleYoutubeApi(key);
@@ -24,11 +24,11 @@ export class Youtube {
 
     public searchOnLuck(searchQuery: string): Promise<VideoInfo> {
         return new Promise((resolve, reject) => {
-            this.simpleYoutubeApi.youtube.searchVideos(searchQuery, 1)
+            this.simpleYoutubeApi.searchVideos(searchQuery, 1)
                 .then((video: any) => {
                     if (video.length === 0) return reject(new Error('Nothing found'));
 
-                    this.simpleYoutubeApi.youtube.getVideoByID(video[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
+                    this.simpleYoutubeApi.getVideoByID(video[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
                         .then(async (video: any) => {
                             resolve(this.formatVideo(video));
                         })
