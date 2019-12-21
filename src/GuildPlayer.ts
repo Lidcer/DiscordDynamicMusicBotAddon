@@ -1,6 +1,6 @@
 import { VideoInfo, PlayerLanguage } from './interfaces';
 import { opus } from 'prism-media';
-import { GuildMember, TextChannel, Message, Guild } from 'discord.js';
+import { GuildMember, TextChannel, Message, Guild, MessageReaction } from 'discord.js';
 import { EventEmitter } from 'events';
 import { random } from 'lodash';
 import { getStream } from './yt-core-discord';
@@ -220,8 +220,10 @@ export class GuildPlayer extends EventEmitter {
         this.clearVotes();
         if (this.loop) return this.getNewStream(this.currentlyPlaying);
         this.currentlyPlaying = this.playlist.shift();
-        if (this.currentlyPlaying)
+        if (this.currentlyPlaying) {
+            if (this.currentlyPlaying.message) this.currentlyPlaying.message.clearReactions();
             this.previous.push(this.currentlyPlaying);
+        }
         return this.getNewStream(this.currentlyPlaying);
     }
 
@@ -301,6 +303,40 @@ export class GuildPlayer extends EventEmitter {
         }
     }
 
+    removeFromPlayListByMessage(message: Message): boolean {
+        const playlistItem = this.playlist.find(p => p.message === message);
+        if (!playlistItem) return false;
+        const msg = playlistItem.message;
+        if (!msg) return false;
+        const messageReaction = message.reactions.find(r => r.emoji.name === '❎');
+        const guildMembers = this.getUsersFromReactions(messageReaction);
+        let shouldContinue = this.canExecute(guildMembers);
+        if (!shouldContinue) {
+            for (const guildMember of guildMembers) {
+                if (guildMember === playlistItem.submitter) {
+                    shouldContinue = true;
+                    break;
+                }
+            }
+        }
+        if (!shouldContinue) return false;
+        const index = this.playlist.indexOf(playlistItem);
+        if (index === -1) return false;
+        this.playlist.splice(index, 1);
+
+        if (msg) msg.delete().catch(err => message.client.emit('error', err));
+        return true;
+    }
+    getUsersFromReactions(messageReaction: MessageReaction) {
+        const guildMembers: GuildMember[] = [];
+        const guild = messageReaction.message.guild;
+        for (const user of messageReaction.users.map(u => u)) {
+            const guildMember = guild.members.find(m => m.user === user);
+            if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
+        }
+        return guildMembers;
+    }
+
     private onVoteSuccessful(type: VoteType) {
         switch (type) {
             case 'voteNext':
@@ -337,13 +373,13 @@ export class GuildPlayer extends EventEmitter {
     }
     private canExecute(guildMembers: GuildMember[] | GuildMember): boolean {
         if (!Array.isArray(guildMembers)) {
-            return guildMembers.hasPermission('MANAGE_CHANNELS');
+            return !guildMembers.user.bot && guildMembers.hasPermission('MANAGE_CHANNELS');
         }
 
         if (guildMembers.length === 0) return false;
         let i = 0;
         for (const guildMember of guildMembers) {
-            if (guildMember.hasPermission('MANAGE_CHANNELS')) return true;
+            if (!guildMember.user.bot && guildMember.hasPermission('MANAGE_CHANNELS')) return true;
             i++;
         }
         return i === guildMembers.length ? true : false;

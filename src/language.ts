@@ -11,6 +11,7 @@ export class Language {
         missingPermission: 'Missing permission you need to have role DJ to use command or being alone in channel also works.',
         alreadyOnPlaylist: 'Requested track is already on playlist!',
         prefix: '',
+        foundVideoUnavailable: 'Found video is unavailable',
         toLongTrack: 'Requested track <trackurl> to long. Max length of track <maxlength> minutes',
         toLongTrackLuckSearch: 'Track <trackname> is to long to be played. Max length of track <maxlength> minutes',
         video: {
@@ -80,6 +81,8 @@ export class Language {
             replay: ['replay'],
             resume: ['resume'],
             playerCommands: ['player', 'p'],
+            showPlaylist: ['playlist', 'pl'],
+            search: ['youtube', 'search', 'query'],
         },
         vote: {
             voteNext: 'You vote for switch to next song (VOTED_USERS)/(TOTAL_USERS)',

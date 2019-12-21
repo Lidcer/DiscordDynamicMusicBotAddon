@@ -23,6 +23,7 @@ const usePatch = new WeakMap<YoutubePlayer, boolean>();
 const isClientSet = new WeakMap<YoutubePlayer, boolean>();
 const youtube = new WeakMap<YoutubePlayer, Youtube>();
 const secondCommand = new WeakMap<YoutubePlayer, boolean>();
+const autoQueryDetection = new WeakMap<YoutubePlayer, boolean>();
 const waitTimeBetweenTracks = new WeakMap<YoutubePlayer, number>();
 const maxItemsInPlayList = new WeakMap<YoutubePlayer, number>();
 const maxUserItemsInPlayList = new WeakMap<YoutubePlayer, number>();
@@ -75,6 +76,7 @@ export class YoutubePlayer {
         maxUserItemsInPlayList.set(this, 10);
         votePercentage.set(this, 0.6);
         coolDown.set(this, 5);
+        autoQueryDetection.set(this, true);
     }
 
     /**
@@ -93,6 +95,15 @@ export class YoutubePlayer {
     set usePatch(trueFalse: boolean) {
         if (typeof trueFalse !== 'boolean') throw new Error(`Expected boolean got ${typeof trueFalse}`);
         usePatch.set(this, trueFalse);
+    }
+
+    /**
+     * Should search if none of the player commands where found in message
+     * @param {boolean} boolean Enables/disables autoQuerySearch
+     */
+    set autoQuerySearch(trueFalse: boolean) {
+        if (typeof trueFalse !== 'boolean') throw new Error(`Expected boolean got ${typeof trueFalse}`);
+        autoQueryDetection.set(this, trueFalse);
     }
 
     /**
@@ -173,7 +184,6 @@ export class YoutubePlayer {
         if (percentage > 100) throw new Error(`Number cannot be higher than 100`);
         votePercentage.set(this, percentage / 100);
     }
-
 
     /**
      * Should message be rubbish collected
@@ -283,7 +293,13 @@ export class YoutubePlayer {
             } else if (commendChecker(checker, commands.replay)) {
                 commandReplayTrack(this, message);
                 return;
+            } else if (commendChecker(checker, commands.replay)) {
+                commandReplayTrack(this, message);
+                return;
             } else if (commendChecker(checker, commands.loop)) {
+                commandLoopTrack(this, message);
+                return;
+            } else if (commendChecker(checker, commands.showPlayList)) {
                 commandLoopTrack(this, message);
                 return;
             } else if (commendChecker(checker, commands.shuffle)) {
@@ -292,14 +308,13 @@ export class YoutubePlayer {
                 else getGuildPlayer(this, message.guild).shuffleQueue(message, language);
                 return;
             } else {
-                const urls = checker.match(youtubeTester);
-                if (urls) addYoutubeToQueue(this, message, urls);
-                else if (checker.match(urlTester)) {
-                    errorInfo(message.channel as TextChannel, language.onlyYoutubeLinks);
-                } else {
-                    youtubeLuckSearch(this, message, checker);
-                    // errorInfo(message.channel as TextChannel, language.incorrectUse);
-                }
+                if (autoQueryDetection.get(this)) {
+                    const urls = checker.match(youtubeTester);
+                    if (urls) addYoutubeToQueue(this, message, urls);
+                    else if (checker.match(urlTester)) {
+                        errorInfo(message.channel as TextChannel, language.onlyYoutubeLinks);
+                    } else youtubeLuckSearch(this, message, checker);
+                } else errorInfo(message.channel as TextChannel, language.incorrectUse);
             }
         });
         return true;
@@ -343,7 +358,7 @@ function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
             }
         });
 
-        const emojiWatcher = (theGuildPlayer: GuildPlayer, guildMembers: GuildMember[], emoji: string) => {
+        const emojiWatcher = (theGuildPlayer: GuildPlayer, guildMembers: GuildMember[], emoji: string, message: Message) => {
             switch (emoji) {
                 case '⏸️':
                     if (theGuildPlayer.setVote(guildMembers, 'votePauseResume')) recreateOrRecreatePlayerButtons(theGuildPlayer);
@@ -363,6 +378,9 @@ function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
                 case '🔂':
                     if (theGuildPlayer.setVote(guildMembers, 'voteLoop')) recreateOrRecreatePlayerButtons(theGuildPlayer);
                     break;
+                case '❎':
+                    theGuildPlayer.removeFromPlayListByMessage(message);
+                    break;
                 // case '🔀':
                 //     if (theGuildPlayer.setVoteShuffle(guildMembers)) recreateOrRecreatePlayerButtons(theGuildPlayer);
                 //     break;
@@ -371,26 +389,16 @@ function setupClient(youtubePlayer: YoutubePlayer, client: Client) {
             }
         };
 
-        const getUsersFromReactions = (messageReaction: MessageReaction) => {
-            const guildMembers: GuildMember[] = [];
-            const guild = messageReaction.message.guild;
-            for (const user of messageReaction.users.map(u => u)) {
-                const guildMember = guild.members.find(m => m.user === user);
-                if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
-            }
-            return guildMembers;
-        };
-
         const onMessageReactionAddOrRemove = (messageReaction: MessageReaction) => {
             if (!messageReaction.message.guild) return;
             const guild = messageReaction.message.guild;
             const guildData = guildPlayer.get(youtubePlayer)!;
             const theGuildPlayer = guildData[guild.id];
             if (!theGuildPlayer) return;
-            if (theGuildPlayer.playerMessage !== messageReaction.message) return;
+            if (client.user !== messageReaction.message.author) return;
 
-            const guildMembers = getUsersFromReactions(messageReaction);
-            emojiWatcher(theGuildPlayer, guildMembers, messageReaction.emoji.name);
+            const guildMembers = theGuildPlayer.getUsersFromReactions(messageReaction);
+            emojiWatcher(theGuildPlayer, guildMembers, messageReaction.emoji.name, messageReaction.message);
         };
 
         client.on('messageReactionAdd', messageReaction => {
@@ -420,7 +428,9 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
         const youtubeClass = youtube.get(youtubePlayer)!;
         const title = player.isAlreadyOnPlaylistByUrl(url);
         if (title) {
-            errorInfo(message.channel as TextChannel, `${message.author} ${language.alreadyOnPlaylist}\n<${title}>`, selfDeleteTime.get(youtubePlayer)!);
+            await errorInfo(message.channel as TextChannel, `${message.author} ${language.alreadyOnPlaylist}\n${title}`, selfDeleteTime.get(youtubePlayer)!);
+            if (infoMessage !== false && infoMessage !== true) deleteManyMessage(infoMessage);
+            updatePlayer(youtubePlayer, message.guild, true);
             break;
         }
         try {
@@ -428,7 +438,9 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
             const videoInfo = await getYTInfo(url);
             const maxTrackLength = maxVideoLength.get(youtubePlayer)!;
             if (parseInt(videoInfo.length_seconds) / 60 > maxTrackLength) {
-                errorInfo(message.channel as TextChannel, language.toLongTrack.replace(/<trackurl>/g, `<${videoInfo.video_url}>`).replace(/<maxlength>/g, maxTrackLength.toString()));
+                await errorInfo(message.channel as TextChannel, ` ${message.author} ${language.toLongTrack.replace(/<trackurl>/g, `<${videoInfo.video_url}>`).replace(/<maxlength>/g, maxTrackLength.toString())}`);
+                if (infoMessage !== false && infoMessage !== true) deleteManyMessage(infoMessage);
+                updatePlayer(youtubePlayer, message.guild, true);
                 break;
             }
             const playlistItem: PlaylistItem = {
@@ -439,7 +451,6 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
                 submitted: new Date(Date.now()),
                 submitter: message.member,
             };
-            console.log(playlistItem.videoData?.author)
             if (player.push(playlistItem)) {
                 playlistItems.push(playlistItem);
             }
@@ -460,8 +471,8 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
     }
 
     if (playlistItems.length === 0) return;
-    sendQueueVideoInfo(youtubePlayer, message, playlistItems);
     await startPlayer(youtubePlayer, message);
+    sendQueueVideoInfo(youtubePlayer, message, playlistItems);
 }
 
 async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message, query: string) {
@@ -470,7 +481,7 @@ async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message,
     const language = playerLanguage.get(youtubePlayer)!.getLang();
     const youtubeClass = youtube.get(youtubePlayer)!;
     if (isPlaylistFull(message, youtubePlayer, language)) return;
-
+    let url = '';
     const infoMessage = await info(message.channel as TextChannel, language.player.searching.replace(/\(URL\)/g, `\`${query}\``))
         .catch(error => message.client.emit('error', error));
 
@@ -480,15 +491,20 @@ async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message,
     let playlistItem: PlaylistItem;
     try {
         const result = await youtubeClass.searchOnLuck(query);
+        url = `${result.video_url} `;
         const maxTrackLength = maxVideoLength.get(youtubePlayer)!;
         if (result.duration > maxTrackLength) {
-            errorInfo(message.channel as TextChannel, language.toLongTrack.replace(/<trackurl>/g, `${result.video_url}`).replace(/<maxlength>/g, maxTrackLength.toString()));
+            await errorInfo(message.channel as TextChannel, `${message.author} ${language.toLongTrack.replace(/<trackurl>/g, `${result.video_url}`).replace(/<maxlength>/g, maxTrackLength.toString())}`);
+            if (infoMessage !== false && infoMessage !== true) deleteManyMessage(infoMessage);
+            updatePlayer(youtubePlayer, message.guild, true);
             return;
         }
 
         const title = player.isAlreadyOnPlaylistById(result.id);
         if (title) {
-            errorInfo(message.channel as TextChannel, `${message.author} ${language.alreadyOnPlaylist}\n<${title}>`, selfDeleteTime.get(youtubePlayer)!);
+            await errorInfo(message.channel as TextChannel, `${message.author} ${language.alreadyOnPlaylist}\n${title}`, selfDeleteTime.get(youtubePlayer)!);
+            if (infoMessage !== false && infoMessage !== true) deleteManyMessage(infoMessage);
+            updatePlayer(youtubePlayer, message.guild, true);
             return;
         }
         const options = usePatch.get(youtubePlayer) ? patch : {};
@@ -506,22 +522,22 @@ async function youtubeLuckSearch(youtubePlayer: YoutubePlayer, message: Message,
             return;
         }
     } catch (error) {
-        errorInfo(message.channel as TextChannel, error.toString(), selfDeleteTime.get(youtubePlayer));
+        errorInfo(message.channel as TextChannel, `${url}${language.foundVideoUnavailable}`, selfDeleteTime.get(youtubePlayer));
         message.client.emit('error', error);
         return;
     }
 
-    if (infoMessage) {
-        if (Array.isArray(infoMessage)) {
-            for (const msg of infoMessage) {
-                msg.delete().catch(error => message.client.emit('error', error));
-            }
-        } else if (infoMessage !== true) {
-            infoMessage.delete().catch(error => message.client.emit('error', error));
-        }
-    }
+    if (infoMessage !== false && infoMessage !== true) deleteManyMessage(infoMessage);
     await startPlayer(youtubePlayer, message);
     sendQueueVideoInfo(youtubePlayer, message, [playlistItem], true);
+}
+
+function deleteManyMessage(message: Message | Message[]) {
+    if (Array.isArray(message)) {
+        for (const msg of message) {
+            msg.delete().catch(error => msg.client.emit('error', error));
+        }
+    } else message.delete().catch(error => message.client.emit('error', error));
 }
 
 function isPlaylistFull(message: Message, youtubePlayer: YoutubePlayer, language: PlayerLanguage): boolean {
@@ -572,6 +588,7 @@ function getGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
 
 function sendQueueVideoInfo(youtubePlayer: YoutubePlayer, message: Message, playlistItems: PlaylistItem[], search = false) {
     const language = playerLanguage.get(youtubePlayer)!.getLang();
+    const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
     for (const playlistItem of playlistItems) {
         if (canEmbed(message.channel as TextChannel)) {
             const embed = new RichEmbed();
@@ -583,12 +600,12 @@ function sendQueueVideoInfo(youtubePlayer: YoutubePlayer, message: Message, play
                 .then(msg => {
                     if (Array.isArray(msg)) {
                         playlistItem.message = msg[0];
-                        if (reactionButtons.get(youtubePlayer)!) {
+                        if (reactionButtons.get(youtubePlayer)! && guildPlayer.length !== 0) {
                             msg[0].react('❎');
                         }
                     } else {
                         playlistItem.message = msg;
-                        if (reactionButtons.get(youtubePlayer)!) {
+                        if (reactionButtons.get(youtubePlayer)! && guildPlayer.length !== 0) {
                             msg.react('❎');
                         }
                     }
@@ -709,8 +726,12 @@ async function updatePlayer(youtubePlayer: YoutubePlayer, guild: Guild, fullUpda
     else progress = `${getYoutubeTime(videoTimestamp)} / ${getYoutubeTime(videoTimestamp)}`;
 
     const embed = new RichEmbed();
-    embed.setDescription(`\`${sliderGenerator(startSongTime.getTime(), videoTimestamp)}\``);
     addBasicInfo(youtubePlayer, embed, currentSong);
+    if (!embed.description) {
+        embed.setDescription(`\`${sliderGenerator(startSongTime.getTime(), videoTimestamp)}\``);
+    } else {
+        embed.setDescription(`${embed.description}\n\`${sliderGenerator(startSongTime.getTime(), videoTimestamp)}\``);
+    }
     embed.setColor(guildPlayer.color as ColorResolvable);
     embed.addField(language.video.progress, progress, true);
     const voteNext = guildPlayer.voteNextStatus;
@@ -731,10 +752,8 @@ async function updatePlayer(youtubePlayer: YoutubePlayer, guild: Guild, fullUpda
     if (guildPlayer.isPaused)
         embed.setFooter(language.player.statusPaused, youtubeLogo);
     else {
-        if (guildPlayer.isLooping)
-            embed.setFooter(`${language.player.statusPlaying} 🔄${currentSong.videoInfo.thumbnail_url}`);
-        else
-            embed.setFooter(language.player.statusPlaying, currentSong.videoInfo.thumbnail_url);
+        if (guildPlayer.isLooping) embed.setFooter(`${language.player.statusPlaying} 🔄`, youtubeLogo);
+        else embed.setFooter(language.player.statusPlaying, youtubeLogo);
     }
     embed.setThumbnail('');
     if (!guildPlayer.playerMessage) {
@@ -800,16 +819,18 @@ async function recreateOrRecreatePlayerButtons(guildPlayer: GuildPlayer) {
 }
 
 async function destroyGuildPlayer(youtubePlayer: YoutubePlayer, guild: Guild) {
-    const guildData = guildPlayer.get(youtubePlayer)!;
-    if (!guildData[guild.id]) return;
+    const theGuildData = guildPlayer.get(youtubePlayer)!;
+    if (!theGuildData[guild.id]) return;
+    const playerMessage = theGuildData[guild.id].playerMessage;
+    theGuildData[guild.id].destroy();
+    if (playerMessage) playerMessage.delete().catch(error => guild.client.emit('error', error));
     const language = playerLanguage.get(youtubePlayer)!.getLang();
-    const textChannel = guildData[guild.id].getTextChannel();
-    guildData[guild.id].destroy();
+    const textChannel = theGuildData[guild.id].getTextChannel();
 
     if (guild.me.voiceChannel && guild.me.voiceChannel.connection) guild.me.voiceChannel.connection.disconnect();
     if (textChannel) info(textChannel, language.player.destroy);
 
-    delete guildData[guild.id];
+    delete theGuildData[guild.id];
     guild.client.emit('debug', `[Youtube Player] [Status] Player destroyed in guild ${guild.id}`);
 }
 

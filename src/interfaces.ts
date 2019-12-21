@@ -37,6 +37,7 @@ export interface PlayerLanguage {
     luckSearch: string;
     alreadyOnPlaylist: string;
     missingPermission: string;
+    foundVideoUnavailable: string;
     video: VideoLanguage;
     player: Player;
     help: Help;
@@ -102,7 +103,8 @@ export interface Commands {
     replay: string[];
     resume: string[];
     playerCommands: string[];
-
+    showPlaylist: string[];
+    search: string[];
 }
 
 export interface Help {

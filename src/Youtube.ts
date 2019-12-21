@@ -53,7 +53,7 @@ export class Youtube {
         else if (video.thumbnails.default) videoThumbnail = video.thumbnails.default.url;
         else if (video.thumbnails.standard) videoThumbnail = video.thumbnails.standard.url;
 
-        let channelThumbnail = null;
+        let channelThumbnail = '';
         if (channel.thumbnails.medium) channelThumbnail = channel.thumbnails.default.url;
         else if (channel.thumbnails.default) channelThumbnail = channel.thumbnails.standard.url;
         else if (channel.thumbnails.standard) channelThumbnail = channel.thumbnails.medium.url;

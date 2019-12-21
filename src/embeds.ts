@@ -119,16 +119,16 @@ export function info(channel: TextChannel, content: string, deleteNumber?: numbe
 export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, playlistItem: PlaylistItem) {
     const videoInfo = playlistItem.videoData ? playlistItem.videoData : playlistItem.videoInfo;
     const language = playerLanguage.get(playerObject)!.getLang();
-    if (playlistItem.videoData) {
-        console.log(playlistItem.videoData.author.avatar)
-        embed.setAuthor(playlistItem.videoData.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
+    const regExp = /.*\.png$|.*\.jpg$|.*\.jpeg$|.*\.jpe$|.*\.gif$/g;
+    if (regExp.test(videoInfo.author.avatar)) {
+        embed.setAuthor(videoInfo.author.avatar, videoInfo.author.name, videoInfo.author.channel_url);
         embed.setTitle(videoInfo.title);
     } else {
         embed.setDescription(`[${videoInfo.author.name}](${videoInfo.author.channel_url})\n**[${videoInfo.title}](${videoInfo.video_url})**`);
     }
     embed.setColor('RED');
     embed.setURL(videoInfo.video_url);
-    embed.setThumbnail(videoInfo.thumbnail_url);
+    if (regExp.test(videoInfo.thumbnail_url)) embed.setThumbnail(videoInfo.thumbnail_url);
 
     const date = new Date(videoInfo.published);
 
