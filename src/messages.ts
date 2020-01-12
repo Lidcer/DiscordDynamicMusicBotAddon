@@ -1,8 +1,9 @@
 import { RichEmbed, TextChannel, Message, Guild } from 'discord.js';
-import { YoutubePlayer, playerLanguage } from './YoutubePlayer';
+import YoutubePlayer from './YoutubePlayer';
 import { VideoInfo } from './interfaces';
 import { PlaylistItem } from './GuildPlayer';
 import { escapeRegExp } from 'lodash';
+import { playerLanguage } from './language';
 
 export class Embeds {
 

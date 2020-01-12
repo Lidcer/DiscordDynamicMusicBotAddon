@@ -1,8 +1,18 @@
 {
-	"name": "discordmusicbotsystem",
+	"name": "discord-dynamic-music-bot-addon",
 	"version": "2.0.0",
 	"description": "Music bot addon for bot",
-	"main": "index.js",
+	"types": "./dist/YoutubePlayer.d.ts",
+	"main": "./dist/YoutubePlayer.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Lidcer/DiscordYoutubePlayer"
+	},
+	"bugs": {
+		"email": "thelidcer@gmail.com",
+		"url": "https://github.com/Lidcer/DiscordYoutubePlayer/issues"
+	},
+	"homepage": "https://github.com/Lidcer",
 	"scripts": {
 		"test": "jest",
 		"test:watch": "jest -w",
@@ -15,6 +25,9 @@
 	"engines": {
 		"node": "10.18.1"
 	},
+	"files": [
+		"dist"
+	],
 	"author": "Lidcer",
 	"license": "ISC",
 	"dependencies": {

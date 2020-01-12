@@ -1,4 +1,7 @@
 import { PlayerLanguage, Commands } from './interfaces';
+import YoutubePlayer from './YoutubePlayer';
+
+export const playerLanguage = new WeakMap<YoutubePlayer, Language>();
 
 export class Language {
 

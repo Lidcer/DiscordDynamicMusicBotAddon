@@ -1,7 +1,6 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const { YoutubePlayer } = require('../dist/YoutubePlayer');
-
+const YoutubePlayer = require('../dist/YoutubePlayer');
 
 const language = require('./language.json');
 let config = {};
@@ -12,7 +11,7 @@ try {
     config.YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY
 }
 
-const prefix = '!';
+const prefix = '+';
 
 const options = {
     // messageUpdateRate: number, // how fast should message be updated in second. Under 5 seconds its not going to work. (default: 5)
@@ -38,21 +37,23 @@ const options = {
     // language: language, // Custom language pack is check ./language.json. by defining custom command you are only added aliases to existing commands the default ones are still going to be available
 };
 
-
-
-const youtubePlayer = new YoutubePlayer(config.YOUTUBE_API_KEY, options);
+const youtubePlayer = new YoutubePlayer.default(config.YOUTUBE_API_KEY, options);
 
 
 client.on('ready', async () => {
     console.info(`Logged in as ${client.user.tag}!`);
     console.info(`Invite Link ${await client.generateInvite(["PRIORITY_SPEAKER", "CONNECT", "MANAGE_MESSAGES", "SEND_MESSAGES", "SPEAK", "EMBED_LINKS"])}`)
+    setPresence()
+});
+
+function setPresence() {
     client.user.setPresence({
         game: {
-            name: `${prefix}player <url>`,
+            name: `${prefix}player <url> | ${client.guilds.size}`,
             type: "WATCHING"
         }
     })
-});
+}
 
 process.on('SIGINT', () => {
     youtubePlayer.destroy(() => {
@@ -79,6 +80,7 @@ client.on('message', message => {
 
 
 client.on('guildCreate', guild => {
+    setPresence();
     const channel = guild.channels.find(c => (c.type === 'text' && c.permissionsFor(guild.me).has('SEND_MESSAGES')));
     const message = [
         `This bot is open source. You can find this code here <https://github.com/Lidcer/DiscordYoutubePlayer>.`,
@@ -87,6 +89,7 @@ client.on('guildCreate', guild => {
 
     if (channel) channel.send(message);
 });
+client.on('guildDelete', () => { setPresence(); });
 
 //client.on("error", console.error);
 //client.on("debug", console.info);

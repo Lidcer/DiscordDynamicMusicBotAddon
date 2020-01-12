@@ -14,6 +14,8 @@
 	"foundVideoUnavailable": "Found video is unavailable",
 	"toLongTrack": "Requested track <TRACK_URL> to long. Max length of track <MAX_LENGTH> minutes",
 	"sendingMessageToQuickly": "Hold up you are sending message to fast but there is a cooldown. You have to wait <TIME> seconds",
+	"error": "Error",
+	"info": "Info",
 	"video": {
 		"comments": "Comments",
 		"downVote": "👎",
@@ -45,7 +47,6 @@
 		"statusPlaying": "Playing",
 		"loopingOn": "🔁 Looping this track is now enabled ✔️",
 		"loopingOff": "🔁 Looping this track is not disabled ❌",
-		"error": "Error",
 		"previous": "Track switched to previous track",
 		"playlistFull": "Playlist is full",
 		"wrongChannelNoPermissions": "You can only execute this command in channel where player has been created. But you don't have permission to send messages there. <CHANNEL>",

@@ -2,15 +2,14 @@ import { Message, Guild, RichEmbed, TextChannel, Client, VoiceConnection, ColorR
 import { canEmbed, errorInfo, info, addBasicInfo, sliderGenerator, Embeds, deleteManyMessage, stringifyRichEmbed } from './messages';
 import { Youtube } from './Youtube';
 import { PlayerLanguage, GuildData, VideoInfo, Commands } from './interfaces';
-import { Language } from './language';
+import { Language, playerLanguage } from './language';
 import { GuildPlayer, PlaylistItem, VoteInfo } from './GuildPlayer';
 import { getYTInfo, getStream, searchYTVideo, parsePlaylist } from './yt-core-discord';
 import ytdl = require('ytdl-core');
 
 const youtubeLogo = 'https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png'; // Youtube icon
 const youtubeTester = new RegExp(/http(?:s?):\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w\-\_]*)(&(amp;)?‌​[\w\?‌​=]*)?/g);
-export
-    const urlTester = new RegExp(/https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}/g);
+const urlTester = new RegExp(/https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,}/g);
 const DEFAULT_PLAYER_UPDATE = 10;
 const DEFAULT_WAIT_TIME_BETWEEN_TRACKS = 2;
 const DEFAULT_SELF_DELETE_TIME = 5;
@@ -41,7 +40,6 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-export const playerLanguage = new WeakMap<YoutubePlayer, Language>();
 
 const patch = {
     filter: 'audioonly',
@@ -72,7 +70,7 @@ export interface YoutubePlayerOptions {
     language?: PlayerLanguage;
 }
 
-export class YoutubePlayer {
+export default class YoutubePlayer {
 
     /**
      * Constructor that constructs
