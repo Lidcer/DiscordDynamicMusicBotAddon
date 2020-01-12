@@ -1,6 +1,6 @@
 # DiscordYoutubePlayer
 DiscordYoutubePlayer is a music bot with with live progression tracker and high quality streaming music. 
-![github-medium](https://i.ibb.co/YbsckTV/img.png)
+![github-small](https://i.ibb.co/YbsckTV/img.png)
 
 The bot is highly customizable it support language pack and custom command which can be defined in language pack.
 

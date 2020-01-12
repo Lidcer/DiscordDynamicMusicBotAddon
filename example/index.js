@@ -86,8 +86,7 @@ client.on('guildCreate', guild => {
     ].join('\n');
 
     if (channel) channel.send(message);
-}
-})
+});
 
 //client.on("error", console.error);
 //client.on("debug", console.info);
