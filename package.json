@@ -13,7 +13,7 @@
 		"nodemon": "nodemon --inspect ./example/index.js"
 	},
 	"engines": {
-		"node": "13.6.0"
+		"node": "8.17.0"
 	},
 	"author": "Lidcer",
 	"license": "ISC",
