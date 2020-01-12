@@ -12,6 +12,9 @@
 		"start": "node ./example/index.js",
 		"nodemon": "nodemon --inspect ./example/index.js"
 	},
+	"engines": {
+		"node": "13.6.0"
+	},
 	"author": "Lidcer",
 	"license": "ISC",
 	"dependencies": {
