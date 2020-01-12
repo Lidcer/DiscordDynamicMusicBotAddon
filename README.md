@@ -39,7 +39,6 @@ but it can works with only two permissions
 "SEND_MESSAGES",
 ```
 
-
 ## How to setup?
 check example in ()./example/index)
 in config file you need discord token. Youtube apk is desirable but its not necessary
