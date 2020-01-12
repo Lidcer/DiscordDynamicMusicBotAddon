@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const YoutubePlayer = require('../dist/YoutubePlayer');
+const { YoutubePlayer } = require('../dist/YoutubePlayer');
 
 const language = require('./language.json');
 let config = {};
@@ -37,7 +37,7 @@ const options = {
     // language: language, // Custom language pack is check ./language.json. by defining custom command you are only added aliases to existing commands the default ones are still going to be available
 };
 
-const youtubePlayer = new YoutubePlayer.default(config.YOUTUBE_API_KEY, options);
+const youtubePlayer = new YoutubePlayer(config.YOUTUBE_API_KEY, options);
 
 
 client.on('ready', async () => {

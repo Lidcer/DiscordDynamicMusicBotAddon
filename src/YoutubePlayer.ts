@@ -70,7 +70,7 @@ export interface YoutubePlayerOptions {
     language?: PlayerLanguage;
 }
 
-export default class YoutubePlayer {
+export class YoutubePlayer {
 
     /**
      * Constructor that constructs
