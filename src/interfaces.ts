@@ -1,13 +1,13 @@
-import { GuildMember, TextChannel, Message } from 'discord.js';
+import { GuildPlayer } from './GuildPlayer';
 
-export interface VideoData {
-    id: string;
-    url: string;
+export interface VideoInfo {
+    video_id: string;
+    video_url: string;
     title: string;
-    duration: number;
-    channel: Channel;
-    thumbnail: string;
-    publishedAt: Date;
+    length_seconds: number;
+    author: Channel;
+    thumbnail_url: string;
+    published: number;
     statistics: VideoStatistic;
 }
 
@@ -17,58 +17,131 @@ export interface VideoStatistic {
     favoriteCount: number;
     likeCount: number;
     viewCount: number;
-
 }
 
 export interface Channel {
     id: string;
-    title: string;
-    thumbnail: string;
+    name: string;
+    avatar: string;
+    channel_url: string;
 }
 
 export interface PlayerLanguage {
     notInVoiceChannel: string;
     cannotConnect: string;
     onlyYoutubeLinks: string;
+    playlistNotFound: string;
+    playListParseFail: string;
     incorrectUse: string;
     videoAdded: string;
     luckSearch: string;
     alreadyOnPlaylist: string;
+    isCurrentlyPlaying: string;
     missingPermission: string;
+    foundVideoUnavailable: string;
     video: VideoLanguage;
     player: Player;
     help: Help;
+    commands: Commands;
     prefix: string;
+    toLongTrack: string;
+    sendingMessageToQuickly: string;
+    error: string;
+    info: string;
 }
 
 export interface Player {
+    nothingPlaying: string;
+    featureDisabled: string;
+    loadedTracks: string;
     helpCommand: string;
+    searching: string;
+    parsingPlaylist: string;
     created: string;
+    destroyUnexpected: string;
     destroy: string;
+    previous: string;
+    wrongChannel: string;
+    wrongChannelNoPermissions: string;
+    wrongChannelNoAccess: string;
     paused: string;
     resumed: string;
-    shuffled: string;
     brokenUrl: string;
     replay: string;
     forceReplay: string;
     alreadyOnReplay: string;
-    nothingToShuffle: string;
     statusPlaying: string;
     statusPaused: string;
     loopingOn: string;
     loopingOff: string;
     skip: string;
-    error: string;
+    playlistFull: string;
+    toManyUserTracks: string;
+    toManyUserTracksLimitExceeded: string;
+    vote: VoteStats;
+    id: string;
+    playlistShuffled: string;
+    playlistNothingToShuffle: string;
+    playlistSorted: string;
+    playlistAlreadySorted: string;
+    playlistRemove: string;
+    playlistUnableToFindItem: string;
+
+}
+export interface VoteStats {
+    vote: string;
+    next: string;
+    previous: string;
+    replay: string;
+    pauseResume: string;
+    loop: string;
+    notAllowed: string;
+    noPreviousTrack: string;
+    emptyPlaylist: string;
+    alreadyVoted: string;
+    voteSuccessful: string;
+}
+
+export interface Commands {
+    destroy: string[];
+    next: string[];
+    previous: string[];
+    help: string[];
+    loop: string[];
+    pause: string[];
+    replay: string[];
+    resume: string[];
+    playerCommands: string[];
+    search: string[];
+    url: string[];
+    playlist: string[];
+    playlistCommands: {
+        remove: string[];
+        shuffle: string[];
+        parse: string[];
+        sort: string[];
+        force: string[];
+    };
+
 }
 
 export interface Help {
-    url: string;
-    skip: string;
-    replay: string;
     destroy: string;
-    search: string;
+    loop: string;
+    help: string;
+    next: string;
+    previous: string;
+    replay: string;
     pause: string;
+    url: string;
+    search: string;
     resume: string;
+    playlistParse: string;
+    playlistShuffle: string;
+    playlistSort: string;
+    playlistRemove: string;
+    playlistPlay: string;
+
 }
 
 export interface VideoLanguage {
@@ -83,20 +156,6 @@ export interface VideoLanguage {
     monthsName: string[];
 }
 
-export interface GuildQueue {
-    video: VideoData;
-    submitter: GuildMember;
-    submitted: Date;
-}
-
 export interface GuildData {
-    paused?: Date;
-    looping: boolean;
-    startSongTime?: Date;
-    textChannel?: TextChannel;
-    playerMessage?: Message;
-    currentSong?: GuildQueue;
-    color: number[];
-    queue: GuildQueue[];
-    setTimeout?: NodeJS.Timeout;
+    [guildID: string]: GuildPlayer;
 }

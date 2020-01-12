@@ -1,30 +1,47 @@
 {
-    "name": "discordmusicbotsystem",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "build": "tsc",
-        "build:watch": "tsc -w",
-        "start": "node ./example/index.js",
-        "nodemon": "node ./example/index.js"
-    },
-    "author": "Lidcer",
-    "license": "ISC",
-    "dependencies": {
-        "discord.js": "^11.5.1",
-        "ffmpeg-binaries": "^4.0.0",
-        "ffmpeg-static": "^2.5.0",
-        "lodash": "^4.17.15",
-        "node-opus": "^0.3.2",
-        "simple-youtube-api": "^5.2.1",
-        "youtube-api": "^2.0.10",
-        "ytdl-core-discord": "^1.0.3"
-    },
-    "devDependencies": {
-        "@types/lodash": "^4.14.149",
-        "@types/node": "^12.6.8",
-        "nodemon": "^1.19.1",
-        "typescript": "^3.5.3"
-    }
+	"name": "discordmusicbotsystem",
+	"version": "2.0.0",
+	"description": "Music bot addon for bot",
+	"main": "index.js",
+	"scripts": {
+		"test": "jest",
+		"test:watch": "jest -w",
+		"build": "npm run postinstall && tsc",
+		"build:watch": "npm run postinstall && tsc -w",
+		"postinstall": "node fixLibrary.js",
+		"start": "node ./example/index.js",
+		"nodemon": "nodemon --inspect ./example/index.js"
+	},
+	"author": "Lidcer",
+	"license": "ISC",
+	"dependencies": {
+		"discord.js": "^11.5.1",
+		"discord.js-pagination": "^1.0.2",
+		"ffmpeg-binaries": "^4.0.0",
+		"ffmpeg-static": "^2.5.0",
+		"get-video-id": "^3.1.4",
+		"lodash": "^4.17.15",
+		"node-opus": "^0.3.2",
+		"opusscript": "0.0.7",
+		"prism-media": "^1.1.0",
+		"simple-youtube-api": "^5.2.1",
+		"youtube-api": "^2.0.10",
+		"ytdl-core": "^1.0.3",
+		"ytdl-core-discord": "^1.0.3",
+		"ytpl": "^0.1.19",
+		"ytsr": "^0.1.10"
+	},
+	"devDependencies": {
+		"@types/lodash": "^4.14.149",
+		"@types/node": "^12.6.8",
+		"jest": "^24.9.0",
+		"nodemon": "^1.19.1",
+		"typescript": "^3.5.3"
+	},
+	"nodemonConfig": {
+		"ignore": [
+			"src/*",
+			"node_modules/*"
+		]
+	}
 }

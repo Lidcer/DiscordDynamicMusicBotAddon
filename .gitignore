@@ -2,3 +2,4 @@ dist
 node_modules
 npm-debug.log
 **/example/config.json
+**/test/testConfig.json
