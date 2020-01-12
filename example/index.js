@@ -83,7 +83,7 @@ client.on('guildCreate', guild => {
     setPresence();
     const channel = guild.channels.find(c => (c.type === 'text' && c.permissionsFor(guild.me).has('SEND_MESSAGES')));
     const message = [
-        `This bot is open source. You can find this code here <https://github.com/Lidcer/DiscordYoutubePlayer>.`,
+        `This bot is open source. You can find this code here <https://github.com/Lidcer/DiscordDynamicMusicBotAddon>.`,
         `Checkout \`${prefix}player help\` command`,
     ].join('\n');
 

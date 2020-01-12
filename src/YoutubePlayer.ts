@@ -264,7 +264,7 @@ export class YoutubePlayer {
      */
     set leaveVoiceChannelAfterWhenNoPlayersInChannel(seconds: number) {
         if (typeof seconds !== 'number') throw new Error(`Expected number got ${typeof seconds}`);
-        leaveVoiceChannelAfter.set(this, seconds * 1000);
+        leaveVoiceChannelAfterAllMembersLeft.set(this, seconds * 1000);
     }
 
     /**
