@@ -31,7 +31,7 @@ const options = {
     // multipleParser: boolean, // should bot look for multiple url in one message eg (player yt_url yt_url) (default: true)
     // playlistParse: boolean, // should bot parse playlists at all? (default: true)
     // votePercentage: number, // how many votes in percentage are required to perform vote action in percentage (default: 60)
-    // coolDown: number, // how repeatedly can a user send bot command. It's recommended to be higher tan 5 seconds in seconds (default: 5)
+    // coolDown: number, // how repeatedly can user send bot command. It's recommended to be higher tan 5 seconds in seconds (default: 5)
     // deleteUserMessage: boolean, // should delete user command messages (default: true)
     // hardDeleteUserMessage: boolean, // should delete every user message when the player is active (default:false)
     // reactionButtons: boolean, // should add reaction button to easily control the player with out entering commands (default: true)
@@ -60,8 +60,7 @@ client.login('DISCORD_TOKEN');
 
 The bot is highly customizable it support language pack and custom command which can be defined in language pack.
 
-Basic function Commands
-commands:
+Basic commands:
 ```
 player help - help message
 player <youtube_url> - to player url
@@ -89,7 +88,7 @@ Recommended permissions for bot are
 "SPEAK", 
 "EMBED_LINKS" 
 ```
-but it can works with only two permissions
+but it can work with only two permissions
 ```
 "CONNECT",
 "SEND_MESSAGES",
@@ -98,8 +97,8 @@ but it can works with only two permissions
 ## Repository
 
 ### How to setup?
-check example in ()./example/index)
-in config file you need discord token. Youtube apk is desirable but its not necessary
+check example in (./example/index)
+in config file you need discord token. Youtube api key is desirable but its not necessary
 ```
 - Discord token https://discordapp.com/developers/applications/
 - Youtube Api Key https://console.cloud.google.com/
