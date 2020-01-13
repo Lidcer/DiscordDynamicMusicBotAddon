@@ -1238,7 +1238,7 @@ async function updatePlayer(youtubePlayer: YoutubePlayer, guild: Guild, lang: La
             .catch(e => guild.client.emit('error', e));
     }
 
-    if (!guildPlayer.isGoingToReplay && guildPlayer.playerMessage && reactionButtons.get(youtubePlayer) && videoTimestamp - startSongTime.getTime() < suggestReplay.get(youtubePlayer)!) {
+    if (!guildPlayer.isGoingToReplay && !guildPlayer.isLooping && guildPlayer.playerMessage && reactionButtons.get(youtubePlayer) && videoTimestamp - startSongTime.getTime() < suggestReplay.get(youtubePlayer)!) {
         const message = guildPlayer.playerMessage;
         if (message) {
             const channel = message.channel as TextChannel;
@@ -1270,7 +1270,7 @@ async function recreateOrRecreatePlayerButtons(guildPlayer: GuildPlayer, suggest
             await message.react('⏭️').catch(error => message.client.emit('error', error));
         if (guildPlayer.loop)
             await message.react('🔂').catch(error => message.client.emit('error', error));
-        if (!guildPlayer.isGoingToReplay && startSongTime && videoTimestamp - startSongTime.getTime() < suggestReplay)
+        if (!guildPlayer.isGoingToReplay && !guildPlayer.isLooping && startSongTime && videoTimestamp - startSongTime.getTime() < suggestReplay)
             await message.react('🔁').catch(error => message.client.emit('error', error));
         // message.react('🔀').catch(error => message.client.emit('error', error));
     }
