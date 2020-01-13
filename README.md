@@ -1,6 +1,10 @@
 # DiscordYoutubePlayer
 DiscordYoutubePlayer is a music bot addon that adds music feature to your bot. It has live progression tracker and streams high quality music. 
 
+In order for bot to work you have to install FFMPEG
+You can get it here: https://www.ffmpeg.org/
+
+
 ## NPM Package
 
 ```bash
