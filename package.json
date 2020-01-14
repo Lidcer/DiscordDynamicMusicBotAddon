@@ -1,6 +1,6 @@
 {
 	"name": "discord-dynamic-music-bot-addon",
-	"version": "2.0.8",
+	"version": "2.0.9",
 	"description": "Music bot addon for bot",
 	"types": "./dist/YoutubePlayer.d.ts",
 	"main": "./dist/YoutubePlayer.js",
@@ -33,7 +33,7 @@
 		"nodemon": "nodemon --inspect ./example/index.js"
 	},
 	"engines": {
-		"node": "10.18.1"
+		"node": ">=10.18.1"
 	},
 	"files": [
 		"dist",
