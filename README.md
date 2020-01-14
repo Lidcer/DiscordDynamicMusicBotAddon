@@ -1,5 +1,5 @@
-# DiscordYoutubePlayer
-DiscordYoutubePlayer is a music bot addon that adds music feature to your bot. It has live progression tracker and streams high quality music. 
+# Discord Dynamic Music Bot Addon
+Discord Dynamic Music Bot Addon is a music bot addon that adds music feature to your bot. It has live progression tracker and streams high quality music from youtube. 
 
 In order for bot to work you have to install FFMPEG
 You can get it here: https://www.ffmpeg.org/
@@ -45,7 +45,7 @@ const options = {
     // language: language, // Custom language pack is check url above. By defining custom command you are only added aliases to existing commands the default ones are still going to be available
 };
 
-const youtubePlayer = newMusicBotAddon.YoutubePlayer(YOUTUBE_API_KEY,options);
+const youtubePlayer = new MusicBotAddon.YoutubePlayer(YOUTUBE_API_KEY,options);
 
 client.on('message', message => {
     if (message.content.toLowerCase().startsWith(prefix)) {
