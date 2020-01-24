@@ -374,7 +374,6 @@ export class YoutubePlayer {
      * @returns {boolean} It's going to return true if command is valid.
      */
     onMessage(message: Message, messageContentWithOutPrefix: string, prefix?: string, playerLang?: PlayerLanguage): boolean {
-        console.log(messageContentWithOutPrefix)
         if (!message.guild || message.author.bot) return false;
         if (destroyed.get(this)) return false;
         stealAndSetClient(this, message.client);

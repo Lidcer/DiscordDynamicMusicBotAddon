@@ -54,8 +54,7 @@
 		"prism-media": "^1.1.0",
 		"simple-youtube-api": "^5.2.1",
 		"youtube-api": "^2.0.10",
-		"ytdl-core": "^1.0.3",
-		"ytdl-core-discord": "^1.0.3",
+		"ytdl-core": "^1.0.7",
 		"ytpl": "^0.1.19",
 		"ytsr": "^0.1.10"
 	},
