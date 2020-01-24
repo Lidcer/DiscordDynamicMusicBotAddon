@@ -374,6 +374,7 @@ export class YoutubePlayer {
      * @returns {boolean} It's going to return true if command is valid.
      */
     onMessage(message: Message, messageContentWithOutPrefix: string, prefix?: string, playerLang?: PlayerLanguage): boolean {
+        console.log(messageContentWithOutPrefix)
         if (!message.guild || message.author.bot) return false;
         if (destroyed.get(this)) return false;
         stealAndSetClient(this, message.client);
@@ -386,6 +387,11 @@ export class YoutubePlayer {
         if (playerLang) lang = new Language(playerLang);
         else if (guildPlayer) lang = guildPlayer.language;
         else lang = playerLanguage.get(this)!;
+
+        const args = messageContentWithOutPrefix.split(' ');
+        if (!lang.lang.commands.playerCommands.includes(args[0].toLowerCase())) {
+            return false;
+        }
 
         const language = lang.getLang();
         const commands = language.commands;
