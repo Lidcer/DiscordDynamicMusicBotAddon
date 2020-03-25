@@ -40,7 +40,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '25/3/2020v build';
+const PLAYER_VERSION = '2.1.3 build';
 
 const patch = {
     filter: 'audioonly',
@@ -835,6 +835,15 @@ function stealAndSetClient(youtubePlayer: YoutubePlayer, client: Client) {
             const player = getGuildPlayer(youtubePlayer, msg.guild);
             if (!!player && player.playerChannel === msg.channel) {
                 msg.delete().catch(err => { msg.client.emit('error', err); });
+            }
+        });
+
+        client.on('voiceStateUpdate', voiceChannel => {
+            if (!voiceChannel.guild.voice || !voiceChannel.guild.voice.channel) {
+                const guildPlayer = getGuildPlayer(youtubePlayer, voiceChannel.guild);
+                if (!guildPlayer) return;
+                const language = playerLanguage.get(youtubePlayer)!;
+                destroyGuildPlayer(youtubePlayer, voiceChannel.guild, language);
             }
         });
     }
