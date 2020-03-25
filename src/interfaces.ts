@@ -113,6 +113,7 @@ export interface Commands {
     resume: string[];
     playerCommands: string[];
     search: string[];
+    version: string[];
     url: string[];
     playlist: string[];
     playlistCommands: {

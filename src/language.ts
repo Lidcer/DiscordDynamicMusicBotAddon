@@ -16,6 +16,7 @@ export class Language {
         resume: ['resume'],
         playerCommands: ['player'],
         url: ['url', 'link'],
+        version: ['version'],
         search: ['search', 'query'],
         playlist: ['playlist'],
         playlistCommands: {
@@ -130,6 +131,7 @@ export class Language {
             previous: ['previous', '<<', 'backwards'],
             pause: ['pause'],
             replay: ['replay'],
+            version: ['version'],
             resume: ['resume'],
             playerCommands: ['player', 'p'],
             url: ['url', 'link'],
@@ -265,6 +267,7 @@ export class Language {
             if (commands.resume && Array.isArray(commands.resume)) this.lang.commands.resume = [...commands.resume, ...this.commands.resume];
             if (commands.playerCommands && Array.isArray(commands.playerCommands)) this.lang.commands.playerCommands = [...commands.playerCommands, ...this.commands.playerCommands];
             if (commands.url && Array.isArray(commands.url)) this.lang.commands.url = [...commands.url, ...this.commands.url];
+            if (commands.version && Array.isArray(commands.version)) this.lang.commands.version = [...commands.version, ...this.commands.version];
             if (commands.search && Array.isArray(commands.search)) this.lang.commands.search = [...commands.search, ...this.commands.search];
             if (commands.playlist && Array.isArray(commands.playlist)) this.lang.commands.playlist = [...commands.playlist, ...this.commands.playlist];
             if (commands.playlistCommands) {

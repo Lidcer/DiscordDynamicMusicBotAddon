@@ -114,7 +114,7 @@ export class GuildPlayer extends EventEmitter {
         if (!this[type].includes(guildMember)) {
             this[type].push(guildMember);
             const users = this.getVoiceChannelUsersSize();
-            if (users * this.votePercentage < this[type].length) {
+            if (!users || users * this.votePercentage < this[type].length) {
                 this.onVoteSuccessful(type);
                 return VoteInfo.VOTE_EXECUTED;
             } else {
@@ -140,7 +140,7 @@ export class GuildPlayer extends EventEmitter {
         }
 
         const users = this.getVoiceChannelUsersSize();
-        if (users * this.votePercentage < this.votePauseResume.length) {
+        if (!users || users * this.votePercentage < this.votePauseResume.length) {
             this.onVoteSuccessful(type);
             return true;
         }
@@ -159,7 +159,9 @@ export class GuildPlayer extends EventEmitter {
     }
 
     getVoiceChannelUsersSize() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (!voiceConnection) return 0;
         return voiceConnection.channel.members.filter(u => !u.user.bot).size;
     }
@@ -230,7 +232,7 @@ export class GuildPlayer extends EventEmitter {
 
             for (const message of messages) {
                 if (message)
-                    await message.clearReactions().catch(err => message.client.emit('error', err));
+                    await message.reactions.removeAll().catch((err: any) => message.client.emit('error', err));
             }
             resolve();
         });
@@ -294,7 +296,7 @@ export class GuildPlayer extends EventEmitter {
         if (replay) return this.getNewStream(this.currentlyPlaying);
         this.currentlyPlaying = this.playlist.shift();
         if (this.currentlyPlaying) {
-            if (this.currentlyPlaying.message) this.currentlyPlaying.message.clearReactions();
+            if (this.currentlyPlaying.message) this.currentlyPlaying.message.reactions.removeAll();
             this.previous.push(this.currentlyPlaying);
         }
         return this.getNewStream(this.currentlyPlaying);
@@ -331,12 +333,16 @@ export class GuildPlayer extends EventEmitter {
     }
 
     nextTrack() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) voiceConnection.dispatcher.end();
     }
 
     pauseTrack() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.pause();
             voiceConnection.dispatcher.pause();
@@ -344,7 +350,9 @@ export class GuildPlayer extends EventEmitter {
     }
 
     resumeTrack() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.unpause();
             voiceConnection.dispatcher.resume();
@@ -360,7 +368,9 @@ export class GuildPlayer extends EventEmitter {
     }
 
     replayTrack() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.switchToPreviousTrack();
             voiceConnection.dispatcher.end();
@@ -377,7 +387,9 @@ export class GuildPlayer extends EventEmitter {
     }
 
     previousTrack() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.switchToPreviousTrack();
             this.switchToPreviousTrack();
@@ -385,56 +397,76 @@ export class GuildPlayer extends EventEmitter {
         }
     }
 
-    removeFromPlayListByMessage(message: Message, deleted = false): boolean {
-
-        const playlistItem = this.playlist.find(p => p.message === message);
-        if (!playlistItem) return false;
-        if (deleted) {
-            this.removeItemFromPlaylist(playlistItem, deleted);
-            return true;
-        }
-        const msg = playlistItem.message;
-        if (!msg) return false;
-        const messageReaction = message.reactions.find(r => r.emoji.name === '❎');
-        const messageMembers = this.getGuildMembersFromReactions(messageReaction);
-        const voiceGuildMembers = message.guild.voiceConnection.channel.members.map(m => m).filter(m => !m.user.bot);
-        const sumGuildMembers = voiceGuildMembers.filter(m => messageMembers.includes(m));
-        let shouldContinue = this.canExecute(sumGuildMembers);
-        if (!shouldContinue) shouldContinue = !!sumGuildMembers.find(m => m === playlistItem.submitter);
-        if (!shouldContinue) {
-            const shouldNotReact = messageMembers.filter(m => m !== playlistItem.submitter);
-            for (const user of shouldNotReact) {
-                messageReaction.remove(user).catch(err => msg.client.emit('error', err));
+    removeFromPlayListByMessage(message: Message, deleted = false): Promise<boolean> {
+        return new Promise(async resolve => {
+            const playlistItem = this.playlist.find(p => p.message === message);
+            if (!playlistItem) return resolve(false);
+            if (deleted) {
+                this.removeItemFromPlaylist(playlistItem, deleted);
+                return resolve(true);
             }
-            return false;
-        }
-        this.removeItemFromPlaylist(playlistItem, deleted);
-        return true;
+            const msg = playlistItem.message;
+            if (!msg) return resolve(false);
+            const messageReaction = message.reactions.resolve('❎');
+            if (!messageReaction) return resolve(false);
+            const messageMembers = await this.getGuildMembersFromReactions(messageReaction);
+            const guild = message.guild;
+            if (!guild) return resolve(false);
+            const voice = guild.voice;
+            if (!voice) return resolve(false);
+            const channel = voice.channel;
+            if (!channel) return resolve(false);
+
+            const voiceGuildMembers = channel.members.map(m => m).filter(m => !m.user.bot);
+            const sumGuildMembers = voiceGuildMembers.filter(m => messageMembers.includes(m));
+            let shouldContinue = this.canExecute(sumGuildMembers);
+            if (!shouldContinue) shouldContinue = !!sumGuildMembers.find(m => m === playlistItem.submitter);
+            if (!shouldContinue) {
+                const shouldNotReact = messageMembers.filter(m => m !== playlistItem.submitter);
+                for (const user of shouldNotReact) {
+                    await messageReaction.users.remove(user).catch((err: any) => msg.client.emit('error', err));
+                }
+                return resolve(false);
+            }
+            this.removeItemFromPlaylist(playlistItem, deleted);
+            return resolve(true);
+        });
     }
     canExecute(guildMembers: GuildMember[] | GuildMember): boolean {
         if (!Array.isArray(guildMembers)) return !guildMembers.user.bot && guildMembers.hasPermission('MANAGE_CHANNELS');
         if (guildMembers.length === 0) return false;
-        if (guildMembers[0].guild.voiceConnection.channel.members.filter(m => !m.user.bot).size === 1) return true;
+        const voice = guildMembers[0].guild.voice;
+        if (!voice) return false;
+        if (!voice.channel) return false;
+        if (voice.channel.members.filter(m => !m.user.bot).size === 1) return true;
         for (const guildMember of guildMembers) {
             if (this.canExecute(guildMember)) return true;
         }
         return false;
     }
 
-    getGuildMembersFromReactions(messageReaction: MessageReaction) {
+    async getGuildMembersFromReactions(messageReaction: MessageReaction) {
         const guildMembers: GuildMember[] = [];
         const guild = messageReaction.message.guild;
-        for (const user of messageReaction.users.map(u => u)) {
-            const guildMember = guild.members.find(m => m.user === user);
+        if (!guild) return [];
+        const users = await messageReaction.users.fetch();
+        for (const user of users.map(u => u)) {
+            const guildMember = await guild.members.fetch(user.id);
             if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
         }
         return guildMembers;
     }
 
-    getFromVoiceAndMessageReactions(messageReaction: MessageReaction) {
-        const messageMembers = this.getGuildMembersFromReactions(messageReaction);
-        const voiceGuildMembers = messageReaction.message.guild.voiceConnection.channel.members.map(m => m).filter(m => !m.user.bot);
-        return voiceGuildMembers.filter(m => messageMembers.includes(m));
+    async getFromVoiceAndMessageReactions(messageReaction: MessageReaction) {
+
+        const messageMembers = await this.getGuildMembersFromReactions(messageReaction);
+        const voice = this.guild.voice;
+        if (!voice) return [];
+        const voiceChannel = voice.channel;
+        if (!voiceChannel) return [];
+        const voiceGuildMembers = voiceChannel.members.map(m => m).filter(m => !m.user.bot);
+        const result = voiceGuildMembers.filter(m => messageMembers.includes(m));
+        return result;
     }
 
     removeItemFromPlaylist(playlistItem: PlaylistItem, deleted = false) {
@@ -473,7 +505,9 @@ export class GuildPlayer extends EventEmitter {
     }
 
     private pauseResume() {
-        const voiceConnection = this.guild.voiceConnection;
+        const voice = this.guild.voice;
+        if (!voice) return;
+        const voiceConnection = voice.connection;
         if (!voiceConnection) return;
         const dispatcher = voiceConnection.dispatcher;
         if (!dispatcher) return;

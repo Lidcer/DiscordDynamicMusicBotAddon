@@ -1,74 +1,73 @@
 {
-	"name": "discord-dynamic-music-bot-addon",
-	"version": "2.0.10",
-	"description": "Music bot addon for bot",
-	"types": "./dist/YoutubePlayer.d.ts",
-	"main": "./dist/YoutubePlayer.js",
-	"keywords": [
-		"discord",
-		"music",
-		"addon",
-		"extension",
-		"plugin",
-		"opus",
-		"youtube",
-		"lidcer"
-	],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Lidcer/DiscordDynamicMusicBotAddon"
-	},
-	"bugs": {
-		"email": "thelidcer@gmail.com",
-		"url": "https://github.com/Lidcer/DiscordDynamicMusicBotAddon/issues"
-	},
-	"homepage": "https://github.com/Lidcer",
-	"scripts": {
-		"test": "jest",
-		"test:watch": "jest -w",
-		"build": "npm run postinstall && tsc",
-		"build:watch": "npm run postinstall && tsc -w",
-		"postinstall": "node fixLibrary.js",
-		"start": "node ./example/index.js",
-		"nodemon": "nodemon --inspect ./example/index.js"
-	},
-	"engines": {
-		"node": ">=10.18.1"
-	},
-	"files": [
-		"dist",
-		"fixLibrary.js",
-		"LICENCE.md"
-	],
-	"author": "Lidcer",
-	"license": "ISC",
-	"dependencies": {
-		"discord.js": "^11.5.1",
-		"discord.js-pagination": "^1.0.2",
-		"ffmpeg-binaries": "^4.0.0",
-		"ffmpeg-static": "^2.5.0",
-		"get-video-id": "^3.1.4",
-		"lodash": "^4.17.15",
-		"node-opus": "^0.3.2",
-		"opusscript": "0.0.7",
-		"prism-media": "^1.1.0",
-		"simple-youtube-api": "^5.2.1",
-		"youtube-api": "^2.0.10",
-		"ytdl-core": "^1.0.7",
-		"ytpl": "^0.1.19",
-		"ytsr": "^0.1.10"
-	},
-	"devDependencies": {
-		"@types/lodash": "^4.14.149",
-		"@types/node": "^12.6.8",
-		"jest": "^24.9.0",
-		"nodemon": "^1.19.1",
-		"typescript": "^3.5.3"
-	},
-	"nodemonConfig": {
-		"ignore": [
-			"src/*",
-			"node_modules/*"
-		]
-	}
+  "name": "discord-dynamic-music-bot-addon",
+  "version": "2.0.10",
+  "description": "Music bot addon for bot",
+  "types": "./dist/YoutubePlayer.d.ts",
+  "main": "./dist/YoutubePlayer.js",
+  "keywords": [
+    "discord",
+    "music",
+    "addon",
+    "extension",
+    "plugin",
+    "opus",
+    "youtube",
+    "lidcer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lidcer/DiscordDynamicMusicBotAddon"
+  },
+  "bugs": {
+    "email": "thelidcer@gmail.com",
+    "url": "https://github.com/Lidcer/DiscordDynamicMusicBotAddon/issues"
+  },
+  "homepage": "https://github.com/Lidcer",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest -w",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "start": "node ./example/index.js",
+    "nodemon": "nodemon --inspect ./example/index.js"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "files": [
+    "dist",
+    "fixLibrary.js",
+    "LICENCE.md"
+  ],
+  "author": "Lidcer",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/opus": "^0.1.0",
+    "discord.js": "^12.0.2",
+    "ffmpeg-binaries": "^4.0.0",
+    "ffmpeg-static": "^2.7.0",
+    "get-video-id": "^3.1.4",
+    "lodash": "^4.17.15",
+    "opusscript": "0.0.7",
+    "prism-media": "^1.2.1",
+    "simple-youtube-api": "^5.2.1",
+    "youtube-api": "^2.0.10",
+    "ytdl-core": "^1.0.9",
+    "ytpl": "^0.1.20",
+    "ytsr": "^0.1.12"
+  },
+  "devDependencies": {
+    "@types/ws": "^7.2.3",
+    "@types/lodash": "^4.14.149",
+    "@types/node": "^12.6.8",
+    "jest": "^24.9.0",
+    "nodemon": "^1.19.1",
+    "typescript": "^3.5.3"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "src/*",
+      "node_modules/*"
+    ]
+  }
 }

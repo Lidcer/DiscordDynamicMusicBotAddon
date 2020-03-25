@@ -1,4 +1,4 @@
-import { RichEmbed, TextChannel, Message, Guild } from 'discord.js';
+import { TextChannel, Message, Guild, MessageEmbed } from 'discord.js';
 import { YoutubePlayer } from './YoutubePlayer';
 import { VideoInfo } from './interfaces';
 import { PlaylistItem } from './GuildPlayer';
@@ -23,7 +23,7 @@ export class Embeds {
 }
 
 function basicEmbed() {
-    const embed = new RichEmbed();
+    const embed = new MessageEmbed();
     embed.setTimestamp(Date.now());
     return embed;
 }
@@ -45,8 +45,8 @@ export function info(channel: TextChannel, content: string, title: string, delet
 }
 
 export function sendEmbed(channel: TextChannel, content: string, type: 'info' | 'error', title: string, deleteTimeout?: number): Promise<Message | Message[]> {
-    return new Promise((resolve, rejects) => {
-        let embed: RichEmbed;
+    return new Promise(async (resolve, rejects) => {
+        let embed: MessageEmbed;
         switch (type) {
             case 'error':
                 embed = Embeds.errorEmbed(content, title);
@@ -70,7 +70,7 @@ export function sendEmbed(channel: TextChannel, content: string, type: 'info' | 
                     channel.client.emit('error', error);
                 });
         } else {
-            channel.send(stringifyRichEmbed(embed, channel.guild))
+            channel.send(await stringifyRichEmbed(embed, channel.guild))
                 .then(m => {
                     resolve(m);
                     deleteMsg(m, deleteTimeout);
@@ -83,38 +83,39 @@ export function sendEmbed(channel: TextChannel, content: string, type: 'info' | 
     });
 }
 
-export function stringifyRichEmbed(richEmbed: RichEmbed, guild: Guild) {
+export async function stringifyRichEmbed(richEmbed: MessageEmbed, guild: Guild) {
     const content: string[] = [];
     const markUp = '```';
     if (richEmbed.author) {
-        content.push(removeMarkup(richEmbed.author.name, guild));
+        content.push(await removeMarkup(richEmbed.author.name || '', guild));
         if (richEmbed.author.url) {
             content.push(richEmbed.author.url);
         }
         content.push('\n');
     }
     if (richEmbed.title) {
-        content.push(removeMarkup(richEmbed.title, guild));
+        content.push(await removeMarkup(richEmbed.title, guild));
         content.push('\n');
     }
     if (richEmbed.description) {
-        content.push(removeMarkup(richEmbed.description, guild));
+        content.push(await removeMarkup(richEmbed.description, guild));
         content.push('\n');
     }
     if (richEmbed.fields) {
         for (const field of richEmbed.fields) {
-            content.push(removeMarkup(field.name, guild));
-            content.push(`  ${removeMarkup(field.value, guild).split('\n').join('\n  ')}`);
+            content.push(await removeMarkup(field.name, guild));
+            const value = await removeMarkup(field.value, guild);
+            content.push(`  ${value.split('\n').join('\n  ')}`);
         }
     }
     if (richEmbed.footer && richEmbed.footer.text) {
-        content.push(removeMarkup(richEmbed.footer.text, guild));
+        content.push(await removeMarkup(richEmbed.footer.text, guild));
     }
 
     return `${markUp}\n${content.join('\n')}${markUp}`;
 }
 
-function removeMarkup(text: string, guild: Guild) {
+async function removeMarkup(text: string, guild: Guild) {
     if (!text) return text;
     const underlines = text.match(/__[\S]*__/gi);
     if (underlines)
@@ -172,11 +173,11 @@ function removeMarkup(text: string, guild: Guild) {
     if (users)
         for (const user of users) {
             const id = user.replace(/[<@!>]/g, '');
-            const guildUser = guild.members.find(u => u.user.id === id);
+            const guildUser = await guild.members.fetch(id);
             if (guildUser) {
                 text = text.replace(user, guildUser.displayName);
             } else {
-                const discordUser = guild.client.users.find(u => u.id === id);
+                const discordUser = await guild.client.users.fetch(id);
                 if (discordUser) text = text.replace(user, discordUser.tag);
             }
         }
@@ -184,7 +185,7 @@ function removeMarkup(text: string, guild: Guild) {
     if (channels)
         for (const channel of channels) {
             const id = channel.replace(/[<#!\>]/g, '');
-            const guildChannel = guild.channels.find(c => c.id === id);
+            const guildChannel = await guild.channels.resolve(id);
             if (guildChannel)
                 text = text.replace(channel, guildChannel.name);
         }
@@ -199,15 +200,15 @@ function deleteMsg(msg: Message | Message[], deleteTimeout: number | undefined) 
     }
 }
 
-export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, playlistItem: PlaylistItem, guild: Guild) {
+export async function addBasicInfo(playerObject: YoutubePlayer, embed: MessageEmbed, playlistItem: PlaylistItem, guild: Guild) {
     const videoInfo = playlistItem.videoData ? playlistItem.videoData : playlistItem.videoInfo;
     const language = playerLanguage.get(playerObject)!.getLang();
     const regExp = /.*\.png$|.*\.jpg$|.*\.jpeg$|.*\.jpe$|.*\.gif$/g;
     if (regExp.test(videoInfo.author.avatar)) {
-        embed.setAuthor(videoInfo.author.avatar, removeMarkup(videoInfo.author.name, guild), videoInfo.author.channel_url);
+        embed.setAuthor(videoInfo.author.avatar, await removeMarkup(videoInfo.author.name, guild), videoInfo.author.channel_url);
         embed.setTitle(videoInfo.title);
     } else {
-        embed.setDescription(`[${removeMarkup(videoInfo.author.name, guild)}](${videoInfo.author.channel_url})\n**[${removeMarkup(videoInfo.title, guild)}](${videoInfo.video_url})**`);
+        embed.setDescription(`[${await removeMarkup(videoInfo.author.name, guild)}](${videoInfo.author.channel_url})\n**[${await removeMarkup(videoInfo.title, guild)}](${videoInfo.video_url})**`);
     }
     embed.setColor('RED');
     embed.setURL(videoInfo.video_url);
@@ -244,21 +245,21 @@ export function addBasicInfo(playerObject: YoutubePlayer, embed: RichEmbed, play
 }
 
 export function canEmbed(channel?: TextChannel | undefined): boolean {
-    if (!channel) return false;
+    if (!channel || !channel.guild || !channel.guild.me) return false;
     const me = channel.permissionsFor(channel.guild.me);
     if (!me) return false;
     return me.has('EMBED_LINKS');
 }
 
 export function canManageMessage(channel?: TextChannel | undefined): boolean {
-    if (!channel) return false;
+    if (!channel || !channel.guild || !channel.guild.me) return false;
     const me = channel.permissionsFor(channel.guild.me);
     if (!me) return false;
     return me.has('MANAGE_MESSAGES');
 }
 
 export function canAddReaction(channel?: TextChannel | undefined): boolean {
-    if (!channel) return false;
+    if (!channel || !channel.guild || !channel.guild.me) return false;
     const me = channel.permissionsFor(channel.guild.me);
     if (!me) return false;
     return me.has('ADD_REACTIONS');
