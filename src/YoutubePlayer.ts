@@ -40,7 +40,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '2.1.3 build';
+const PLAYER_VERSION = '2.1.4 build';
 
 const patch = {
     filter: 'audioonly',
@@ -1178,7 +1178,7 @@ async function startPlayer(youtubePlayer: YoutubePlayer, message: Message, lang:
             try {
                 if (!member.voice.channel) return;
                 connection = await member.voice.channel.join();
-                if (guild.me && guild.me.voice) guild.me.voice.setDeaf(true);
+                if (guild.me && guild.me.voice) guild.me.voice.setDeaf(true).catch(() => { /* ignore */ });
 
                 guildPlayer.setTextChannel(message.channel as TextChannel);
                 info(message.channel as TextChannel, language.player.created, language.info);
