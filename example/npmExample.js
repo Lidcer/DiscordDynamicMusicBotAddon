@@ -5,8 +5,8 @@ const MusicBotAddon = require('discord-dynamic-music-bot-addon');
 
 const prefix = '!';
 
-const YOUTUBE_API_KEY = undefined; 
-const DISCORD_TOKEN = 'NTg2ODgyOTk2MTI1MTcxNzEy.XnsxJQ.HR1Ig-MhzrJJ7ASM6qZMaYNni7U'
+const YOUTUBE_API_KEY = undefined;
+const DISCORD_TOKEN = ''
 const options = {
     // messageUpdateRate: number, // how fast should message be updated in second. Under 5 seconds its not going to work. (default: 5)
     // selfDeleteTime: number, // error message that bot sends to notify user about something are going to delete in seconds. (default: 5)
@@ -33,7 +33,7 @@ const options = {
     // language: language, // Custom language pack is check url above. By defining custom command you are only added aliases to existing commands the default ones are still going to be available
 };
 
-const youtubePlayer = new MusicBotAddon.YoutubePlayer(YOUTUBE_API_KEY,options);
+const youtubePlayer = new MusicBotAddon.YoutubePlayer(YOUTUBE_API_KEY, options);
 
 client.on('message', message => {
     if (message.content.toLowerCase().startsWith(prefix)) {
