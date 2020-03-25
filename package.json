@@ -37,7 +37,6 @@
   },
   "files": [
     "dist",
-    "fixLibrary.js",
     "LICENCE.md"
   ],
   "author": "Lidcer",
@@ -49,6 +48,8 @@
     "ffmpeg-static": "^2.7.0",
     "get-video-id": "^3.1.4",
     "lodash": "^4.17.15",
+    "lzma-native": "^6.0.0",
+    "node-pre-gyp": "^0.14.0",
     "opusscript": "0.0.7",
     "prism-media": "^1.2.1",
     "simple-youtube-api": "^5.2.1",
