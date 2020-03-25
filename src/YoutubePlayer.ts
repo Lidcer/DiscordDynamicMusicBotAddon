@@ -1178,7 +1178,9 @@ async function startPlayer(youtubePlayer: YoutubePlayer, message: Message, lang:
             try {
                 if (!member.voice.channel) return;
                 connection = await member.voice.channel.join();
-                if (guild.me && guild.me.voice) guild.me.voice.setDeaf(true).catch(() => { /* ignore */ });
+                if (guild.me && guild.me.voice) guild.me.voice.setDeaf(true).catch(() => {
+                    if (guild && guild.me && guild.me.voice) guild.me.voice.setSelfDeaf(true).catch(() => {/* ignore */ });
+                });
 
                 guildPlayer.setTextChannel(message.channel as TextChannel);
                 info(message.channel as TextChannel, language.player.created, language.info);
