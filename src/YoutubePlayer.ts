@@ -38,7 +38,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '2.1.6 build';
+const PLAYER_VERSION = '2.1.7 build';
 
 export interface YoutubePlayerOptions {
     messageUpdateRate?: number;

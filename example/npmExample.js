@@ -5,7 +5,7 @@ const MusicBotAddon = require('discord-dynamic-music-bot-addon');
 const prefix = '!';
 
 const YOUTUBE_API_KEY = undefined;
-const DISCORD_TOKEN = ''
+const DISCORD_TOKEN = '';
 const options = {
     // messageUpdateRate: number, // how fast should message be updated in second. Under 5 seconds its not going to work. (default: 5)
     // selfDeleteTime: number, // error message that bot sends to notify user about something are going to delete in seconds. (default: 5)
