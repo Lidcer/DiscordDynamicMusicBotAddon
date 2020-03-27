@@ -68,8 +68,8 @@ export async function searchYTVideo(query: string) {
     results = results.items.filter((r: any) => r.type === 'video');
     if (results[0]) {
         const result = await getYTInfo(results[0].link);
-        if (!result.length_seconds) throw new Error('Missing data fetched from video.')
-        if (!result.title) throw new Error('Missing data fetched from video.')
+        if (!result.length_seconds) throw new Error('Missing data fetched from video.');
+        if (!result.title) throw new Error('Missing data fetched from video.');
         return result;
     } else {
         throw new Error('Nothing found');

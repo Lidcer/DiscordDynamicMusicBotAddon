@@ -21,7 +21,6 @@ const options = {
     // leaveVoiceChannelAfter: number, // when there isn't playing anything when should bot leave the channel is seconds. (default: 20)
     // leaveVoiceChannelAfterAllMembersLeft: number, // when no one is in channel and nothing is playing when should bot leave the channel is seconds. (default: 20)
     // maxTrackLength: number, // How long can requested track be in minutes. (default: 180 )
-    // usePatch: boolean, // If you are experience issue where track is terminated 10 - 15 seconds before the end of the track enable it. (default: false)
     // autoQueryDetection: boolean, // Smart feature a user only have to type player command and youtube url link and its going to automatically search or look for url. (default: true)
     // autoPlaylistDetection: boolean, // should autoQueryDetection look for playlist link and automatically parse them? (default: false)
     // waitTimeBetweenTracks: number,   // how longs should bot wait between switching tracks in seconds. (default: 2)

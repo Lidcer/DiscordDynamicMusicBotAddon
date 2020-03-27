@@ -21,6 +21,7 @@ module.exports = {
         "@typescript-eslint"
     ],
     "rules": {
+        "semi": [2, "always"],
         "@typescript-eslint/no-unused-vars": 0,
         "@typescript-eslint/no-explicit-any": 0,
         "@typescript-eslint/explicit-function-return-type": 0,

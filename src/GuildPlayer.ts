@@ -15,7 +15,6 @@ const youtubeLogo = 'https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png'; // 
 
 export interface PlaylistItem {
     videoData?: VideoInfo;
-    steamOptions: any;
     videoInfo: ytdl.videoInfo;
     stream: opus.Encoder | opus.WebmDemuxer;
     submitter: GuildMember;
@@ -37,6 +36,8 @@ export class GuildPlayer {
     loop = false;
     timeOutPlayerLeave?: NodeJS.Timeout;
     timeOutPlayerLeaveAllMemberLeft?: NodeJS.Timeout;
+    private suggestReplayFun?: NodeJS.Timeout;
+    private songTimer?: NodeJS.Timeout;
     readonly previous: PlaylistItem[] = [];
     readonly playlist: PlaylistItem[] = [];
     private recreateReactionTries = 0;
@@ -138,7 +139,7 @@ export class GuildPlayer {
             this.onVoteSuccessful(type);
             return true;
         }
-
+        this.updatePlayer();
         this[type] = guildMembers;
         return false;
     }
@@ -215,11 +216,15 @@ export class GuildPlayer {
 
     pause() {
         if (this.startTime) this.paused = new Date(Date.now() - this.startTime.getTime());
+        this.clearSongTimer();
     }
 
     unpause() {
-        if (this.paused && this.trackStartTime) this.trackStartTime = new Date(Date.now() - this.paused.getTime());
-
+        if (this.paused && this.trackStartTime) {
+            const duration = parseInt(this.currentPlayListItem!.videoInfo.length_seconds) * 1000;
+            this.trackStartTime = new Date(Date.now() - this.paused.getTime());
+            this.addFunctionWhenSongEnds(duration - this.paused.getTime() + this.waitTimeBetweenTracks);
+        }
         this.paused = undefined;
     }
 
@@ -346,7 +351,7 @@ export class GuildPlayer {
         const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.switchToPreviousTrack();
-            await this.removeAllReactions()
+            await this.removeAllReactions();
             this.playerLoop();
             this.recreateOrRecreatePlayerButtons();
         }
@@ -422,22 +427,22 @@ export class GuildPlayer {
         return false;
     }
 
-    async getGuildMembersFromReactions(messageReaction: MessageReaction) {
+    getGuildMembersFromReactions(messageReaction: MessageReaction) {
         const guildMembers: GuildMember[] = [];
         const guild = messageReaction.message.guild;
         if (!guild) return [];
-        const users = await messageReaction.users.fetch().catch(err => guild.client.emit('err', err));
+        const users = messageReaction.users.cache.map(u => u);
         if (typeof users === 'boolean') return [];
         for (const user of users.map(u => u)) {
-            const guildMember = await guild.members.fetch(user.id);
+            const guildMember = guild.members.cache.find(m => m.user.id === user.id);
             if (guildMember && !guildMember.user.bot) guildMembers.push(guildMember);
         }
         return guildMembers;
     }
 
-    async getFromVoiceAndMessageReactions(messageReaction: MessageReaction) {
+    getFromVoiceAndMessageReactions(messageReaction: MessageReaction) {
 
-        const messageMembers = await this.getGuildMembersFromReactions(messageReaction).catch(err => messageReaction.message.client.emit('err', err));
+        const messageMembers = this.getGuildMembersFromReactions(messageReaction);
         if (typeof messageMembers === 'boolean') return [];
         const voice = this.guild.voice;
         if (!voice) return [];
@@ -507,12 +512,12 @@ export class GuildPlayer {
         embed.setThumbnail('');
         if (!this.playerMessage) {
             if (textChannel && canEmbed(textChannel)) {
-                const msg = await textChannel.send(embed)
+                const msg = await textChannel.send(embed);
                 await this.deletePlayerMessage();
                 this.playerMessage = msg;
                 this.recreateOrRecreatePlayerButtons();
             } else if (textChannel) {
-                const msg = await textChannel.send(await stringifyRichEmbed(embed, this.guild))
+                const msg = await textChannel.send(await stringifyRichEmbed(embed, this.guild));
                 await this.deletePlayerMessage();
                 this.playerMessage = msg;
                 await this.recreateOrRecreatePlayerButtons();
@@ -523,23 +528,14 @@ export class GuildPlayer {
             if (this.playerMessage && this.playerMessage.embeds.length !== 0) {
                 this.playerMessage.edit('', embed);
             } else if (this.playerMessage) {
-                this.playerMessage.edit(await stringifyRichEmbed(embed, this.guild))
+                this.playerMessage.edit(await stringifyRichEmbed(embed, this.guild));
             }
         } catch (error) {
             this.deletePlayerMessage();
             this.updatePlayer();
             return;
         }
-        if (!this.isGoingToReplay && !this.isLooping && this.playerMessage && this.reactionButtons && videoTimestamp - startSongTime.getTime() < this.suggestReplay) {
-            const message = this.playerMessage;
-            if (message) {
-                const channel = message.channel as TextChannel;
-                if (!channel.guild || !channel.guild.me) return;
-                const channelPermissions = channel.permissionsFor(channel.guild.me);
-                if (channelPermissions && channelPermissions.has('MANAGE_MESSAGES'))
-                    message.react('🔁');
-            }
-        }
+
         this.resetPlayerLoop();
     }
 
@@ -550,7 +546,6 @@ export class GuildPlayer {
             try {
                 await this.updatePlayer();
             } catch (error) {
-                console.error('function colapsed', error);
                 this.resetPlayerLoop();
             }
         }, this.playerUpdateRate);
@@ -580,16 +575,6 @@ export class GuildPlayer {
 
         if (!playlistItem) throw new Error('Nothing to play. Should not happen');
         const dispatcher = connection.play(playlistItem.stream, { type: 'opus' });
-        //@ts-ignore
-        global.dispatcher = dispatcher
-        dispatcher.on('end', () => {
-            connection.client.emit('debug', `[Youtube Player] [Status] Track ended in guild ${connection.channel.guild.id}`);
-            setTimeout(() => {
-                this.resetTime();
-                this.recreateOrRecreatePlayerButtons();
-                this.playerLoop()
-            }, this.waitTimeBetweenTracks);
-        });
         dispatcher.on('debug', (info: any) => {
             connection.client.emit('debug', `[Dispatcher] [debug] ${info}`);
         });
@@ -597,6 +582,8 @@ export class GuildPlayer {
             connection.client.emit('debug', `[Youtube Player] [Status] Track started in guild ${connection.channel.guild.id}`);
             this.setStartTime();
             this.updatePlayer();
+            const duration = parseInt(playlistItem.videoInfo.length_seconds) * 1000;
+            this.addFunctionWhenSongEnds(duration + this.waitTimeBetweenTracks);
         });
         dispatcher.on('error', (e: any) => {
             connection.client.emit('debug', `[Youtube Player] [Status] Track Error in guild ${connection.channel.guild.id} ${e}`);
@@ -612,7 +599,7 @@ export class GuildPlayer {
         }
         if (start) {
             if (this.recreateReactionTries > 0) {
-                this.recreateReactionTries = 0
+                this.recreateReactionTries = 0;
                 return;
             }
         }
@@ -645,12 +632,12 @@ export class GuildPlayer {
                     await this.reactIfExist('🔁');
                 // message.react('🔀').catch(error => message.client.emit('error', error));
             }
-            this.recreateReactionTries = 0
+            this.recreateReactionTries = 0;
         } catch (error) {
             this.recreateReactionTries++;
             setTimeout(() => {
                 if (this.recreateReactionTries === 0) return;
-                this.recreateOrRecreatePlayerButtons(false)
+                this.recreateOrRecreatePlayerButtons(false);
             }, 500);
         }
     }
@@ -663,7 +650,7 @@ export class GuildPlayer {
                 try {
                     await this.playerMessage.reactions.removeAll();
                 } catch (error) {
-                    channel.client.emit('error', error)
+                    channel.client.emit('error', error);
                 }
             }
         }
@@ -810,6 +797,42 @@ export class GuildPlayer {
         if (users === 0) return null;
         if (this.voteLoop.length === users) return null;
         return `${this.voteLoop.length}/${users}`;
+    }
+
+    addFunctionWhenSongEnds(time: number) {
+
+        this.clearSongTimer();
+        this.songTimer = setTimeout(async () => {
+            await this.updatePlayer();
+            this.resetTime();
+            this.playerLoop();
+        }, time);
+
+        if (this.suggestReplay) {
+            this.suggestReplayFun = setTimeout(() => {
+                if (!this.isGoingToReplay && !this.isLooping && this.playerMessage && this.reactionButtons) {
+                    const message = this.playerMessage;
+                    if (message) {
+                        const channel = message.channel as TextChannel;
+                        if (!channel.guild || !channel.guild.me) return;
+                        const channelPermissions = channel.permissionsFor(channel.guild.me);
+                        if (channelPermissions && channelPermissions.has('MANAGE_MESSAGES'))
+                            message.react('🔁');
+                    }
+                }
+            }, time - this.suggestReplay);
+        }
+    }
+
+    clearSongTimer() {
+        if (this.songTimer) {
+            clearTimeout(this.songTimer);
+            this.songTimer = undefined;
+        }
+        if (this.suggestReplayFun) {
+            clearTimeout(this.suggestReplayFun);
+            this.suggestReplayFun = undefined;
+        }
     }
 
     private colorFader() {

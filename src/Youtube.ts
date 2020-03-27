@@ -11,14 +11,14 @@ export class Youtube {
     }
 
     public async getVideoInfo(url: string) {
-        const video = await this.simpleYoutubeApi.getVideo(url, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
+        const video = await this.simpleYoutubeApi.getVideo(url, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] });
         return await this.formatVideo(video);
     }
 
     public async searchOnLuck(searchQuery: string) {
         const videos = await this.simpleYoutubeApi.searchVideos(searchQuery, 1);
         if (videos.length === 0) throw new Error('Nothing found');
-        const video = await this.simpleYoutubeApi.getVideoByID(videos[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
+        const video = await this.simpleYoutubeApi.getVideoByID(videos[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] });
         return await this.formatVideo(video);
     }
 
