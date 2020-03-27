@@ -1,6 +1,8 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const { YoutubePlayer } = require('../dist/YoutubePlayer');
+const {
+    YoutubePlayer
+} = require('../dist/YoutubePlayer');
 
 const language = require('./language.json');
 let config = {};
@@ -43,27 +45,34 @@ const youtubePlayer = new YoutubePlayer(config.YOUTUBE_API_KEY, options);
 client.on('ready', async () => {
     console.info(`Logged in as ${client.user.tag}!`);
     console.info(`Invite Link ${await client.generateInvite(["PRIORITY_SPEAKER", "CONNECT", "MANAGE_MESSAGES", "SEND_MESSAGES", "SPEAK", "EMBED_LINKS"])}`)
-    setPresence()
+    setPresence();
 });
 
-function setPresence() {
-    client.user.setPresence({
-        game: {
-            name: `${prefix}player <url> | ${client.guilds.size}`,
-            type: "WATCHING"
-        }
+async function setPresence() {
+    await client.user.setPresence({
+        activity: {
+            name: `${prefix}player <url> | ${client.guilds.cache.size}`,
+            type: 'WATCHING'
+        },
+        status: 'online'
     })
 }
 
 process.on('SIGINT', () => {
     youtubePlayer.destroy(() => {
-        process.exit(0);
+        client.destroy();
+        setInterval(() => {
+            process.exit(0);
+        }, 500);
     });
 });
 
 process.on('SIGTERM', () => {
     youtubePlayer.destroy(() => {
-        process.exit(0);
+        client.destroy();
+        setInterval(() => {
+            process.exit(0);
+        }, 500);
     });
 });
 
@@ -89,7 +98,9 @@ client.on('guildCreate', guild => {
 
     if (channel) channel.send(message);
 });
-client.on('guildDelete', () => { setPresence(); });
+client.on('guildDelete', () => {
+    setPresence();
+});
 
 //client.on("error", console.error);
 //client.on("debug", console.info);

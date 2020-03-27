@@ -1,6 +1,6 @@
 import { VideoInfo } from './interfaces';
 // @ts-ignore Declaration files does not exist.
-const SimpleYoutubeApi = require('simple-youtube-api');
+import SimpleYoutubeApi from 'simple-youtube-api';
 
 export class Youtube {
 
@@ -10,36 +10,16 @@ export class Youtube {
         this.simpleYoutubeApi = new SimpleYoutubeApi(key);
     }
 
-    public getVideoInfo(url: string): Promise<VideoInfo> {
-        return new Promise(async (resolve, reject) => {
-            await this.simpleYoutubeApi.getVideo(url, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
-                .then(async (video: any) => {
-                    resolve(await this.formatVideo(video));
-                })
-                .catch((error: any) => {
-                    reject(error);
-                });
-        });
+    public async getVideoInfo(url: string) {
+        const video = await this.simpleYoutubeApi.getVideo(url, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
+        return await this.formatVideo(video);
     }
 
-    public searchOnLuck(searchQuery: string): Promise<VideoInfo> {
-        return new Promise((resolve, reject) => {
-            this.simpleYoutubeApi.searchVideos(searchQuery, 1)
-                .then((video: any) => {
-                    if (video.length === 0) return reject(new Error('Nothing found'));
-                    this.simpleYoutubeApi.getVideoByID(video[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
-                        .then(async (video: any) => {
-                            resolve(await this.formatVideo(video));
-                        })
-                        .catch((error: any) => {
-                            reject(error);
-                        });
-
-                })
-                .catch((error: any) => {
-                    reject(error);
-                });
-        });
+    public async searchOnLuck(searchQuery: string) {
+        const videos = await this.simpleYoutubeApi.searchVideos(searchQuery, 1);
+        if (videos.length === 0) throw new Error('Nothing found');
+        const video = await this.simpleYoutubeApi.getVideoByID(videos[0].id, { 'part': ['statistics', 'id', 'snippet', 'contentDetails'] })
+        return await this.formatVideo(video);
     }
 
     private async formatVideo(video: any) {
@@ -57,10 +37,14 @@ export class Youtube {
         else if (channel.thumbnails.default) channelThumbnail = channel.thumbnails.standard.url;
         else if (channel.thumbnails.standard) channelThumbnail = channel.thumbnails.medium.url;
         const videoData: VideoInfo = {
+            // eslint-disable-next-line @typescript-eslint/camelcase
             video_id: video.id,
+            // eslint-disable-next-line @typescript-eslint/camelcase
             video_url: `https://youtu.be/${video.id}`,
+            // eslint-disable-next-line @typescript-eslint/camelcase
             thumbnail_url: videoThumbnail,
             title: video.title,
+            // eslint-disable-next-line @typescript-eslint/camelcase
             length_seconds: length / 60 / 60,
             published: video.publishedAt,
             statistics: {
@@ -74,6 +58,7 @@ export class Youtube {
                 id: channel.id,
                 name: channel.title,
                 avatar: channelThumbnail,
+                // eslint-disable-next-line @typescript-eslint/camelcase
                 channel_url: `https://www.youtube.com/channel/${channel.id}`,
             },
         };

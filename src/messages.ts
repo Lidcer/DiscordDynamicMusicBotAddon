@@ -8,79 +8,47 @@ import { playerLanguage } from './language';
 export class Embeds {
 
     static infoEmbed(msg: string, title = 'Info') {
-        const embed = basicEmbed();
-        embed.setColor('GOLD');
-        embed.addField(title, msg);
-        return embed;
+        return basicEmbed().setColor('GOLD').addField(title, msg)
     }
 
     static errorEmbed(msg: string, title = 'Error') {
-        const embed = basicEmbed();
-        embed.setColor('RED');
-        embed.addField(title, msg);
-        return embed;
+        return basicEmbed().setColor('RED').addField(title, msg);
     }
 }
 
 function basicEmbed() {
-    const embed = new MessageEmbed();
-    embed.setTimestamp(Date.now());
-    return embed;
+    return new MessageEmbed().setTimestamp(Date.now());
 }
 
-export function errorInfo(channel: TextChannel, content: string, title: string, deleteTimeout?: number): Promise<Message | Message[]> {
-    return new Promise((resolve, rejects) => {
-        sendEmbed(channel, content, 'error', title, deleteTimeout)
-            .then(result => resolve(result))
-            .catch(err => rejects(err));
-    });
+export async function errorInfo(channel: TextChannel, content: string, title: string, deleteTimeout?: number) {
+    return await sendEmbed(channel, content, 'error', title, deleteTimeout);
 }
 
-export function info(channel: TextChannel, content: string, title: string, deleteTimeout?: number): Promise<Message | Message[]> {
-    return new Promise((resolve, rejects) => {
-        sendEmbed(channel, content, 'info', title, deleteTimeout)
-            .then(result => resolve(result))
-            .catch(err => rejects(err));
-    });
+export async function info(channel: TextChannel, content: string, title: string, deleteTimeout?: number) {
+    return await sendEmbed(channel, content, 'info', title, deleteTimeout);
 }
 
-export function sendEmbed(channel: TextChannel, content: string, type: 'info' | 'error', title: string, deleteTimeout?: number): Promise<Message | Message[]> {
-    return new Promise(async (resolve, rejects) => {
-        let embed: MessageEmbed;
-        switch (type) {
-            case 'error':
-                embed = Embeds.errorEmbed(content, title);
-                break;
-            case 'info':
-                embed = Embeds.infoEmbed(content, title);
-                break;
-            default:
-                rejects(new Error('type not specified'));
-                return;
-        }
-        if (canEmbed(channel as TextChannel)) {
-
-            channel.send(embed)
-                .then(m => {
-                    resolve(m);
-                    deleteMsg(m, deleteTimeout);
-                })
-                .catch(error => {
-                    rejects(error);
-                    channel.client.emit('error', error);
-                });
-        } else {
-            channel.send(await stringifyRichEmbed(embed, channel.guild))
-                .then(m => {
-                    resolve(m);
-                    deleteMsg(m, deleteTimeout);
-                })
-                .catch(error => {
-                    rejects(error);
-                    channel.client.emit('error', error);
-                });
-        }
-    });
+export async function sendEmbed(channel: TextChannel, content: string, type: 'info' | 'error', title: string, deleteTimeout?: number) {
+    let embed: MessageEmbed;
+    switch (type) {
+        case 'error':
+            embed = Embeds.errorEmbed(content, title);
+            break;
+        case 'info':
+            embed = Embeds.infoEmbed(content, title);
+            break;
+        default:
+            throw new Error('type not specified');
+    }
+    if (canEmbed(channel as TextChannel)) {
+        const message = await channel.send(embed);
+        deleteMsg(message, deleteTimeout);
+        return message;
+    } else {
+        const message = await channel.send(await stringifyRichEmbed(embed, channel.guild))
+        deleteMsg(message, deleteTimeout);
+        return message;
+    }
 }
 
 export async function stringifyRichEmbed(richEmbed: MessageEmbed, guild: Guild) {
@@ -192,10 +160,10 @@ async function removeMarkup(text: string, guild: Guild) {
     return text;
 }
 
-function deleteMsg(msg: Message | Message[], deleteTimeout: number | undefined) {
+function deleteMsg(msg: Message, deleteTimeout: number | undefined) {
     if (deleteTimeout) {
         setTimeout(() => {
-            multipleMessagesToOne(msg, on => { on.delete().catch(err => { on.client.emit(err); }); });
+            msg.delete().catch((e) => { msg.client.emit('error', e) })
         }, deleteTimeout);
     }
 }
@@ -205,13 +173,21 @@ export async function addBasicInfo(playerObject: YoutubePlayer, embed: MessageEm
     const language = playerLanguage.get(playerObject)!.getLang();
     const regExp = /.*\.png$|.*\.jpg$|.*\.jpeg$|.*\.jpe$|.*\.gif$/g;
     if (regExp.test(videoInfo.author.avatar)) {
-        embed.setAuthor(videoInfo.author.avatar, await removeMarkup(videoInfo.author.name, guild), videoInfo.author.channel_url);
-        embed.setTitle(videoInfo.title);
+        try {
+            embed.setAuthor(videoInfo.author.avatar, await removeMarkup(videoInfo.author.name, guild), videoInfo.author.channel_url);
+        } catch (_) {
+            embed.setAuthor(videoInfo.author.avatar, await removeMarkup(videoInfo.author.name, guild));
+        }
+        if (videoInfo.title) embed.setTitle(videoInfo.title);
     } else {
-        embed.setDescription(`[${await removeMarkup(videoInfo.author.name, guild)}](${videoInfo.author.channel_url})\n**[${await removeMarkup(videoInfo.title, guild)}](${videoInfo.video_url})**`);
+        const author = videoInfo.author.name ? `[${await removeMarkup(videoInfo.author.name, guild)}](${videoInfo.author.channel_url})\n` : '';
+        embed.setDescription(`${author}**[${await removeMarkup(videoInfo.title, guild)}](${videoInfo.video_url})**`);
     }
     embed.setColor('RED');
-    embed.setURL(videoInfo.video_url);
+    try {
+        embed.setURL(videoInfo.video_url);
+    } catch (_) { /* ignored */ }
+
     if (regExp.test(videoInfo.thumbnail_url)) embed.setThumbnail(videoInfo.thumbnail_url);
 
     const date = new Date(videoInfo.published);
@@ -219,7 +195,8 @@ export async function addBasicInfo(playerObject: YoutubePlayer, embed: MessageEm
     const day = date.getDate();
     const month = language.video.monthsName[date.getMonth()];
     const year = date.getFullYear();
-    embed.addField(language.video.published, `${day} ${month} ${year}`, true);
+    if (day || month || year)
+        embed.addField(language.video.published, `${day} ${month} ${year}`, true);
 
     const richVideoInfo = videoInfo as VideoInfo;
     if (richVideoInfo.statistics) {
@@ -284,18 +261,4 @@ export function arrayReplace(text: string, character: string) {
         text = text.replace(removedItem, item);
     }
     return text;
-}
-
-export function multipleMessagesToOne(messages: Message | Message[], callback: (message: Message) => void) {
-    if (Array.isArray(messages)) {
-        for (const message of messages) {
-            callback(message);
-        }
-    } else callback(messages);
-}
-
-export function deleteManyMessage(message: Message | Message[]) {
-    multipleMessagesToOne(message, m => {
-        m.delete().catch(error => m.client.emit('error', error));
-    });
 }

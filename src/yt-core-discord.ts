@@ -1,6 +1,8 @@
 import * as ytdl from 'ytdl-core';
-const ytsr = require('ytsr');
-const ytpl = require('ytpl');
+// @ts-ignore no types
+import ytsr from 'ytsr';
+// @ts-ignore no types
+import ytpl from 'ytpl';
 import { FFmpeg, opus } from 'prism-media';
 
 function filter(format: ytdl.videoFormat) {
@@ -16,14 +18,8 @@ function nextBestFormat(formats: ytdl.videoFormat[]) {
     return formats.find(format => !format.bitrate) || formats[0];
 }
 
-export function getYTInfo(url: string): Promise<ytdl.videoInfo> {
-    return new Promise((resolve, reject) => {
-        ytdl.getInfo(url, (err, info) => {
-            if (err) return reject(err);
-
-            resolve(info);
-        });
-    });
+export async function getYTInfo(url: string) {
+    return await ytdl.getInfo(url);
 }
 
 export function getStream(info: ytdl.videoInfo, options = {}): opus.Encoder | opus.WebmDemuxer {
@@ -62,45 +58,24 @@ export function getStream(info: ytdl.videoInfo, options = {}): opus.Encoder | op
     }
 }
 
-export function getVideoInfoPlusStream(url: string, options = {}): Promise<opus.Encoder | opus.WebmDemuxer> {
-    return new Promise(async (resolve, rejects) => {
-        try {
-            const videoInfo = await getYTInfo(url);
-            resolve(getStream(videoInfo, options));
-            return;
-        } catch (error) {
-            rejects(error);
-            return;
-        }
-    });
+export async function getVideoInfoPlusStream(url: string, options = {}) {
+    const videoInfo = await getYTInfo(url);
+    return getStream(videoInfo, options);
 }
 
-export async function searchYTVideo(query: string): Promise<ytdl.videoInfo> {
-    return new Promise(async (resolve, rejects) => {
-        try {
-            let results = await ytsr(query, { limit: 10 });
-            results = results.items.filter((r: any) => r.type === 'video');
-            if (results[0]) {
-                const result = await getYTInfo(results[0].link);
-                resolve(result);
-            } else {
-                rejects(new Error('Nothing found'));
-            }
-        } catch (error) {
-            rejects(error);
-            return;
-        }
-    });
+export async function searchYTVideo(query: string) {
+    let results = await ytsr(query, { limit: 10 });
+    results = results.items.filter((r: any) => r.type === 'video');
+    if (results[0]) {
+        const result = await getYTInfo(results[0].link);
+        if (!result.length_seconds) throw new Error('Missing data fetched from video.')
+        if (!result.title) throw new Error('Missing data fetched from video.')
+        return result;
+    } else {
+        throw new Error('Nothing found');
+    }
 }
 
 export async function parsePlaylist(IDorURL: string) {
-    return new Promise(async (resolve, rejects) => {
-        try {
-            const results = await ytpl(IDorURL);
-            resolve(results);
-        } catch (error) {
-            rejects(error);
-            return;
-        }
-    });
+    return await ytpl(IDorURL);
 }
