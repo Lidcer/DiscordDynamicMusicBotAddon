@@ -38,7 +38,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '2.1.5 build';
+const PLAYER_VERSION = '2.1.6 build';
 
 export interface YoutubePlayerOptions {
     messageUpdateRate?: number;
@@ -46,7 +46,6 @@ export interface YoutubePlayerOptions {
     leaveVoiceChannelAfter?: number;
     leaveVoiceChannelAfterAllMembersLeft?: number;
     maxTrackLength?: number;
-    usePatch?: boolean;
     autoQueryDetection?: boolean;
     autoPlaylistDetection?: boolean;
     waitTimeBetweenTracks?: number;
@@ -874,6 +873,7 @@ async function addYoutubeToQueue(youtubePlayer: YoutubePlayer, message: Message,
         }
 
         try {
+
             const videoInfo = await getYTInfo(urls[i]);
             const maxTLength = maxTrackLength.get(youtubePlayer)!;
             if (parseInt(videoInfo.length_seconds) / 60 > maxTLength) {

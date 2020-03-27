@@ -221,9 +221,9 @@ export class GuildPlayer {
 
     unpause() {
         if (this.paused && this.trackStartTime) {
-            const duration = parseInt(this.currentPlayListItem!.videoInfo.length_seconds) * 1000;
+            const duration = parseInt(this.currentPlayListItem!.videoInfo.length_seconds) * 1000
             this.trackStartTime = new Date(Date.now() - this.paused.getTime());
-            this.addFunctionWhenSongEnds(duration - this.paused.getTime() + this.waitTimeBetweenTracks);
+            this.addFunctionWhenSongEnds(duration - this.paused.getTime() + this.waitTimeBetweenTracks)
         }
         this.paused = undefined;
     }
@@ -351,7 +351,7 @@ export class GuildPlayer {
         const voiceConnection = voice.connection;
         if (voiceConnection && voiceConnection.dispatcher) {
             this.switchToPreviousTrack();
-            await this.removeAllReactions();
+            await this.removeAllReactions()
             this.playerLoop();
             this.recreateOrRecreatePlayerButtons();
         }
@@ -512,7 +512,7 @@ export class GuildPlayer {
         embed.setThumbnail('');
         if (!this.playerMessage) {
             if (textChannel && canEmbed(textChannel)) {
-                const msg = await textChannel.send(embed);
+                const msg = await textChannel.send(embed)
                 await this.deletePlayerMessage();
                 this.playerMessage = msg;
                 this.recreateOrRecreatePlayerButtons();
@@ -528,7 +528,7 @@ export class GuildPlayer {
             if (this.playerMessage && this.playerMessage.embeds.length !== 0) {
                 this.playerMessage.edit('', embed);
             } else if (this.playerMessage) {
-                this.playerMessage.edit(await stringifyRichEmbed(embed, this.guild));
+                this.playerMessage.edit(await stringifyRichEmbed(embed, this.guild))
             }
         } catch (error) {
             this.deletePlayerMessage();
@@ -599,7 +599,7 @@ export class GuildPlayer {
         }
         if (start) {
             if (this.recreateReactionTries > 0) {
-                this.recreateReactionTries = 0;
+                this.recreateReactionTries = 0
                 return;
             }
         }
@@ -650,7 +650,7 @@ export class GuildPlayer {
                 try {
                     await this.playerMessage.reactions.removeAll();
                 } catch (error) {
-                    channel.client.emit('error', error);
+                    channel.client.emit('error', error)
                 }
             }
         }
@@ -716,7 +716,7 @@ export class GuildPlayer {
 
     private getNewStream(playlistItem?: PlaylistItem) {
         if (playlistItem) {
-            playlistItem.stream = getStream(playlistItem.videoInfo, playlistItem.steamOptions);
+            playlistItem.stream = getStream(playlistItem.videoInfo);
         }
         return playlistItem;
     }
@@ -805,7 +805,7 @@ export class GuildPlayer {
         this.songTimer = setTimeout(async () => {
             await this.updatePlayer();
             this.resetTime();
-            this.playerLoop();
+            this.playerLoop()
         }, time);
 
         if (this.suggestReplay) {
