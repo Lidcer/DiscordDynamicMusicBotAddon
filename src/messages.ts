@@ -8,7 +8,7 @@ import { playerLanguage } from './language';
 export class Embeds {
 
     static infoEmbed(msg: string, title = 'Info') {
-        return basicEmbed().setColor('GOLD').addField(title, msg)
+        return basicEmbed().setColor('GOLD').addField(title, msg);
     }
 
     static errorEmbed(msg: string, title = 'Error') {
@@ -45,7 +45,7 @@ export async function sendEmbed(channel: TextChannel, content: string, type: 'in
         deleteMsg(message, deleteTimeout);
         return message;
     } else {
-        const message = await channel.send(await stringifyRichEmbed(embed, channel.guild))
+        const message = await channel.send(await stringifyRichEmbed(embed, channel.guild));
         deleteMsg(message, deleteTimeout);
         return message;
     }
@@ -134,7 +134,7 @@ async function removeMarkup(text: string, guild: Guild) {
     const links = text.match(/\[[\S ]*\]\([\S]*\)/gi);
     if (links)
         for (const link of links) {
-            const removed = link.replace(/[\)\]]/g, '').replace(/[\(\[]/g, '\n');
+            const removed = link.replace(/[)\]]/g, '').replace(/[([]/g, '\n');
             text = text.replace(link, removed);
         }
     const users = text.match(/<@[0-9]*>/gi);
@@ -152,7 +152,7 @@ async function removeMarkup(text: string, guild: Guild) {
     const channels = text.match(/<#[0-9]*>/gi);
     if (channels)
         for (const channel of channels) {
-            const id = channel.replace(/[<#!\>]/g, '');
+            const id = channel.replace(/[<#!>]/g, '');
             const guildChannel = await guild.channels.resolve(id);
             if (guildChannel)
                 text = text.replace(channel, guildChannel.name);
@@ -163,7 +163,7 @@ async function removeMarkup(text: string, guild: Guild) {
 function deleteMsg(msg: Message, deleteTimeout: number | undefined) {
     if (deleteTimeout) {
         setTimeout(() => {
-            msg.delete().catch((e) => { msg.client.emit('error', e) })
+            msg.delete().catch((e) => { msg.client.emit('error', e); });
         }, deleteTimeout);
     }
 }

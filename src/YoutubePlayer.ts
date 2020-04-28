@@ -38,7 +38,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '2.1.7 build';
+const PLAYER_VERSION = '2.1.8 build';
 
 export interface YoutubePlayerOptions {
     messageUpdateRate?: number;
@@ -358,7 +358,7 @@ export class YoutubePlayer {
      * @returns {boolean} It's going to return true if command is valid.
      */
     onMessage(message: Message, messageContentWithOutPrefix: string, prefix?: string, playerLang?: PlayerLanguage): boolean {
-        if (!message.guild || message.author.bot) return false;
+        if (!message.guild || message.author.bot || !message.content) return false;
         if (destroyed.get(this)) return false;
         stealAndSetClient(this, message.client);
         const userCoolDown = userCoolDownSet.get(this)!;

@@ -29,7 +29,6 @@ module.exports = {
         "@typescript-eslint/no-use-before-define": 0,
         "@typescript-eslint/no-inferrable-types": 0,
         "@typescript-eslint/ban-ts-ignore": 0,
-        "@typescript-eslint/no-non-null-assertion": 0,
-        "eslint no-undefined": "error"
+        "@typescript-eslint/no-non-null-assertion": 0
     }
 };

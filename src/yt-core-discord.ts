@@ -1,8 +1,10 @@
+// @ts-ignore no types
 import * as ytdl from 'ytdl-core';
 // @ts-ignore no types
 import ytsr from 'ytsr';
 // @ts-ignore no types
 import ytpl from 'ytpl';
+// @ts-ignore
 import { FFmpeg, opus } from 'prism-media';
 
 function filter(format: ytdl.videoFormat) {

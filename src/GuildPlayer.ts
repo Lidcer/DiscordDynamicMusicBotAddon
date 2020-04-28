@@ -1,8 +1,10 @@
 import { VideoInfo } from './interfaces';
+//@ts-ignore
 import { opus } from 'prism-media';
 import { GuildMember, TextChannel, Message, Guild, MessageReaction, MessageEmbed, ColorResolvable } from 'discord.js';
 import { random } from 'lodash';
 import { getStream } from './yt-core-discord';
+//@ts-ignore
 import ytdl = require('ytdl-core');
 
 // @ts-ignore declaration files does not exist.
