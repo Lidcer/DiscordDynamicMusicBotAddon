@@ -514,7 +514,7 @@ export class GuildPlayer {
         embed.setThumbnail('');
         if (!this.playerMessage) {
             if (textChannel && canEmbed(textChannel)) {
-                const msg = await textChannel.send(embed);
+                const msg = await textChannel.send({embed});
                 await this.deletePlayerMessage();
                 this.playerMessage = msg;
                 this.recreateOrRecreatePlayerButtons();

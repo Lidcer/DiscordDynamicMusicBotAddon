@@ -41,7 +41,7 @@ export async function sendEmbed(channel: TextChannel, content: string, type: 'in
             throw new Error('type not specified');
     }
     if (canEmbed(channel as TextChannel)) {
-        const message = await channel.send(embed);
+        const message = await channel.send({embed});
         deleteMsg(message, deleteTimeout);
         return message;
     } else {

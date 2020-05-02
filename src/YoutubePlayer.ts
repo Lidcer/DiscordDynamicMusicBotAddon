@@ -38,7 +38,7 @@ const reactionButtons = new WeakMap<YoutubePlayer, boolean>();
 const destroyed = new WeakMap<YoutubePlayer, boolean>();
 const userCoolDownSet = new WeakMap<YoutubePlayer, Set<string>>();
 const suggestReplay = new WeakMap<YoutubePlayer, number>();
-const PLAYER_VERSION = '2.1.8 build';
+const PLAYER_VERSION = '2.1.9 build';
 
 export interface YoutubePlayerOptions {
     messageUpdateRate?: number;
@@ -493,7 +493,6 @@ export class YoutubePlayer {
                 executed = true;
                 return;
             } else if (commendChecker(checker, commands.playlist)) {
-                if (!isSomethingPlaying(this, message, lang)) return;
                 playlistCommand(this, message, checker, commands, lang);
                 executed = true;
                 return;
@@ -565,7 +564,7 @@ function playlistCommand(youtubePlayer: YoutubePlayer, message: Message, checker
     if (!message.guild) return;
     const args = checker.split(' ');
     const language = lang.getLang();
-    const guildPlayer = getGuildPlayer(youtubePlayer, message.guild);
+    const guildPlayer = getOrSetGuildPlayer(youtubePlayer, message, lang);
     const selfDelete = selfDeleteTime.get(youtubePlayer);
     const shouldBeNumber = parseInt(args[2]);
     if (!guildPlayer) return;
@@ -1016,7 +1015,7 @@ async function playerHelp(youtubePlayer: YoutubePlayer, message: Message, lang: 
         } catch (_) {/*ignore */ }
     }
     if (channel.type === 'dm' || canEmbed(message.channel as TextChannel)) {
-        channel.send(embed).catch(error => message.client.emit('error', error));
+        channel.send({embed}).catch(error => message.client.emit('error', error));
     } else channel.send(await stringifyRichEmbed(embed, message.guild)).catch(error => message.client.emit('error', error));
 }
 
@@ -1033,7 +1032,7 @@ async function playerVersion(youtubePlayer: YoutubePlayer, message: Message) {
         } catch (_) {/*ignore */ }
     }
     if (channel.type === 'dm' || canEmbed(message.channel as TextChannel)) {
-        channel.send(embed).catch(error => message.client.emit('error', error));
+        channel.send({embed}).catch(error => message.client.emit('error', error));
     } else channel.send(await stringifyRichEmbed(embed, message.guild)).catch(error => message.client.emit('error', error));
 }
 
@@ -1080,7 +1079,7 @@ async function sendQueueVideoInfo(youtubePlayer: YoutubePlayer, message: Message
     const permissions = channel.permissionsFor(guild.me);
     if (permissions && permissions.has('SEND_MESSAGES')) {
         if (canEmbed(message.channel as TextChannel)) {
-            videoInfoMessage = await message.channel.send(embed);
+            videoInfoMessage = await message.channel.send({embed});
             playlistItem.message = videoInfoMessage;
             if (reactionButtons.get(youtubePlayer)! && guildPlayer.length !== 0 && permissions.has('MANAGE_MESSAGES')) {
                 await videoInfoMessage.react('❎');

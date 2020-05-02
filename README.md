@@ -36,7 +36,7 @@ const options = {
   // maxUserItemsInPlayList: number,  // how many songs can user have in playlist (default: 10)
   // playlistParseWait: number, // wait time between fetching each track form playlist in seconds (default: 2)
   // multipleParser: boolean, // should bot look for multiple url in one message eg (player yt_url yt_url) (default: true)
-  // playlistParse: boolean, // should bot parse playlists at all? (default: true)
+  // playlistParse: boolean, // should bot parse playlists at all? (default: false)
   // votePercentage: number, // how many votes in percentage are required to perform vote action in percentage (default: 60)
   // coolDown: number, // how repeatedly can user send bot command. It's recommended to be higher tan 5 seconds in seconds (default: 5)
   // deleteUserMessage: boolean, // should delete user command messages (default: true)
